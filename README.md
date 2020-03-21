@@ -15,7 +15,7 @@ This is a simple bash script that will go through the following workflow:
 - Delete the bucket
 - Delete the N-test files
  
-### WARNING: The script will **delete** the bucket at the end. Don't use an existing bucket unless you don't care for it.
+### WARNING: The script will **DELETE** the bucket at the end. Don't use an existing bucket unless you don't care for it.
 
 Pre-requisites
 --------------
@@ -53,5 +53,5 @@ Installation
    ```bash
    a='aws --endpoint-url https://webscaledemo.netapp.com'
    b=bucket
-   c=2
+   c=3
    ```

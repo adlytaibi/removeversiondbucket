@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+a='aws --endpoint-url https://webscaledemo.netapp.com'
+b=bucket
+c=3
+
+#
+command -v jq >/dev/null || { echo "jq is required."; exit 1; }
+command -v aws >/dev/null || { echo "awscli is required."; exit 1; }
+[[ $BASH_VERSINFO > 3 ]] || { echo "need bash>3."; exit 1; }
+width=$(tput cols)
+pad=$(printf '#%.0s' {1..10})
+function title(){
+  echo $pad $@ $pad
+}
+
+# Create bucket
+title "Creating bucket \"$b\""
+$a s3 mb s3://$b || { echo "Cannot proceed, check the error above."; exit 1; }
+
+# Enable versionning on bucket
+title "Enabling versionning on bucket \"$b\""
+$a s3api put-bucket-versioning --bucket $b --versioning-configuration Status=Enabled
+
+# PUT two files with two versions each
+title "Creating files and update to get two versions"
+for ((i=1;i<=$c;i++));do
+  date > test$i
+  $a s3api put-object --bucket $b --key vers/test$i --body test$i
+  date > test$i
+  $a s3api put-object --bucket $b --key vers/test$i --body test$i
+done
+
+title "PRE # List of objects"
+$a s3api list-objects --bucket $b|jq -r '.Contents[].Key'
+
+# Delete all Objects
+title "Deleting all files in bucket \"$b\""
+for i in $($a s3api list-objects --bucket $b|jq -r '.Contents[].Key');do
+  $a s3api delete-object --bucket $b --key $i|jq -r '.VersionId'
+done
+
+title "POST # List of objects"
+$a s3api list-objects --bucket $b
+
+title "PRE # List of file versions"
+versions=$($a s3api list-object-versions --bucket $b)
+jq -r '.Versions[]|"\(.Key) version-id \(.VersionId)"'<<< $versions
+
+# Delete all Versions
+if [[ $versions ]];then
+  title "Deleting all file versions in bucket \"$b\""
+  while read i;do
+    $a s3api delete-object --bucket $b $i
+  done<<< $($a s3api list-object-versions --bucket $b|jq -r '.Versions[]|"--key \(.Key) --version-id \(.VersionId)"')
+fi
+
+title "POST # List of file versions"
+versions=$($a s3api list-object-versions --bucket $b)
+jq -r '.Versions'<<< $versions
+
+title "PRE # List of delete markers"
+dmarkers=$($a s3api list-object-versions --bucket $b)
+jq -r '.DeleteMarkers[]|"\(.Key) version-id \(.VersionId)"'<<< $dmarkers
+
+# Delete all DeleteMarkers
+if [[ $dmarkers ]];then
+  title "Deleting all delete markers in bucket \"$b\""
+  while read i;do
+    $a s3api delete-object --bucket $b $i
+  done<<< $($a s3api list-object-versions --bucket $b|jq -r '.DeleteMarkers[]|"--key \(.Key) --version-id \(.VersionId)"')
+fi
+
+title "POST # List of delete markers"
+$a s3api list-object-versions --bucket $b
+
+# Remove bucket
+title "Removing bucket \"$b\""
+$a s3 rb s3://$b
+
+# Remove the test files
+title "Cleaning up local files"
+for ((i=1;i<=$c;i++));do
+  rm test$i
+done
