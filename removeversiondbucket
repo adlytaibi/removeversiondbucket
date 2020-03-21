@@ -1,8 +1,25 @@
 #!/usr/bin/env bash
 a='aws --endpoint-url https://webscaledemo.netapp.com'
-b=bucket
+b=bversion
 c=3
-
+d=2
+# Switchboard options, set 1 to enable
+enableversioning=1
+enablefileuploads=1
+#
+prelistobjects=1
+deleteobjects=1
+postlistobjects=1
+#
+prelistversions=1
+deleteversions=1
+postlistversions=1
+#
+prelistdeletemarkers=1
+deletedeletemarkers=1
+postlistdeletemarkers=1
+#
+removebucket=1
 #
 command -v jq >/dev/null || { echo "jq is required."; exit 1; }
 command -v aws >/dev/null || { echo "awscli is required."; exit 1; }
@@ -13,72 +30,134 @@ function title(){
   echo $pad $@ $pad
 }
 
-# Create bucket
-title "Creating bucket \"$b\""
-$a s3 mb s3://$b || { echo "Cannot proceed, check the error above."; exit 1; }
+# Check for the bucket
+title "Check for bucket \"$b\""
+bhead=$($a s3api head-bucket --bucket $b 2>&1|sed -n 's/[^0-9]*\([0-9]\{3\}\).*/\1/p')
+case $bhead in
+  404)
+    echo "Bucket named \"$b\" is available"
+    newbuck=yes
+    ;;
+  403)
+    echo "Bucket named \"$b\" is unavailable or verify your credentials."
+    exit 1
+    ;;
+  *)
+    bucket=yes
+    ;;
+esac
 
-# Enable versionning on bucket
-title "Enabling versionning on bucket \"$b\""
-$a s3api put-bucket-versioning --bucket $b --versioning-configuration Status=Enabled
-
-# PUT two files with two versions each
-title "Creating files and update to get two versions"
-for ((i=1;i<=$c;i++));do
-  date > test$i
-  $a s3api put-object --bucket $b --key vers/test$i --body test$i
-  date > test$i
-  $a s3api put-object --bucket $b --key vers/test$i --body test$i
-done
-
-title "PRE # List of objects"
-$a s3api list-objects --bucket $b|jq -r '.Contents[].Key'
-
-# Delete all Objects
-title "Deleting all files in bucket \"$b\""
-for i in $($a s3api list-objects --bucket $b|jq -r '.Contents[].Key');do
-  $a s3api delete-object --bucket $b --key $i|jq -r '.VersionId'
-done
-
-title "POST # List of objects"
-$a s3api list-objects --bucket $b
-
-title "PRE # List of file versions"
-versions=$($a s3api list-object-versions --bucket $b)
-jq -r '.Versions[]|"\(.Key) version-id \(.VersionId)"'<<< $versions
-
-# Delete all Versions
-if [[ $versions ]];then
-  title "Deleting all file versions in bucket \"$b\""
-  while read i;do
-    $a s3api delete-object --bucket $b $i
-  done<<< $($a s3api list-object-versions --bucket $b|jq -r '.Versions[]|"--key \(.Key) --version-id \(.VersionId)"')
+# Create the bucket
+if [[ ! -z $newbuck ]];then
+  title "Creating bucket \"$b\""
+  $a s3 mb s3://$b
+  if [[ $? == 0 ]]; then bucket=yes;fi
 fi
 
-title "POST # List of file versions"
-versions=$($a s3api list-object-versions --bucket $b)
-jq -r '.Versions'<<< $versions
+if [[ ! -z $bucket ]];then
+  # Check bucket versioning
+  if [[ $enableversioning == 1 ]];then
+    title "Check versioning on bucket \"$b\""
+    v=$($a s3api get-bucket-versioning --bucket $b|jq -r '.Status')
+    if [[ $v == "Enabled" ]]; then versiond=yes; echo $v;fi
 
-title "PRE # List of delete markers"
-dmarkers=$($a s3api list-object-versions --bucket $b)
-jq -r '.DeleteMarkers[]|"\(.Key) version-id \(.VersionId)"'<<< $dmarkers
+    # Enable versioning on bucket
+    if [[ -z $versiond && $enableversioning == 1 ]];then
+      title "Enabling versioning on bucket \"$b\""
+      $a s3api put-bucket-versioning --bucket $b --versioning-configuration Status=Enabled
+    fi
+  fi
 
-# Delete all DeleteMarkers
-if [[ $dmarkers ]];then
-  title "Deleting all delete markers in bucket \"$b\""
-  while read i;do
-    $a s3api delete-object --bucket $b $i
-  done<<< $($a s3api list-object-versions --bucket $b|jq -r '.DeleteMarkers[]|"--key \(.Key) --version-id \(.VersionId)"')
+  # PUT C files with D versions each
+  if [[ $enablefileuploads == 1 ]];then
+  title "Creating files and update to get two versions"
+  for ((i=1;i<=$c;i++));do
+    for ((j=1;j<=$d;j++));do
+      date > test$i
+      $a s3api put-object --bucket $b --key vers/test$i --body test$i
+    done
+  done
+  fi
+
+  if [[ $prelistobjects == 1 ]];then
+    title "PRE # List of objects"
+    $a s3api list-objects --bucket $b|jq -r '.Contents[].Key'
+  fi
+
+  # Delete all Objects
+  if [[ $deleteobjects == 1 ]];then
+    title "Deleting all files in bucket \"$b\""
+    for i in $($a s3api list-objects --bucket $b|jq -r '.Contents[].Key');do
+      $a s3api delete-object --bucket $b --key $i|jq -r '.VersionId'
+    done
+  fi
+
+  if [[ $postlistobjects == 1 ]];then
+    title "POST # List of objects"
+    $a s3api list-objects --bucket $b
+  fi
+
+  if [[ $prelistversions == 1 ]];then
+    title "PRE # List of file versions"
+    versions=$($a s3api list-object-versions --bucket $b|jq -r '.Versions[]?')
+    jq -r '.|"\(.Key) version-id \(.VersionId)"'<<< $versions
+  fi
+
+  # Delete all files' versions
+  if [[ $deleteversions == 1 ]];then
+    if [[ $prelistversions == 0 ]];then
+      versions=$($a s3api list-object-versions --bucket $b|jq -r '.Versions[]?')
+    fi
+    if [[ $versions ]];then
+      title "Deleting all file versions in bucket \"$b\""
+      while read i;do
+        $a s3api delete-object --bucket $b $i
+      done<<< $($a s3api list-object-versions --bucket $b|jq -r '.Versions[]?|"--key \(.Key) --version-id \(.VersionId)"')
+    fi
+  fi
+
+  if [[ $postlistversions == 1 ]];then
+    title "POST # List of file versions"
+    versions=$($a s3api list-object-versions --bucket $b)
+    jq -r '.Versions'<<< $versions
+  fi
+
+  if [[ $prelistdeletemarkers == 1 ]];then
+    title "PRE # List of delete markers"
+    dmarkers=$($a s3api list-object-versions --bucket $b|jq -r '.DeleteMarkers[]?')
+    jq -r '.|"\(.Key) version-id \(.VersionId)"'<<< $dmarkers
+  fi
+
+  # Delete all DeleteMarkers
+  if [[ $deletedeletemarkers == 1 ]];then
+    if [[ $prelistdeletemarkers == 0 ]];then
+      dmarkers=$($a s3api list-object-versions --bucket $b|jq -r '.DeleteMarkers[]?')
+    fi
+    if [[ $dmarkers ]];then
+      title "Deleting all delete markers in bucket \"$b\""
+      while read i;do
+        $a s3api delete-object --bucket $b $i
+      done<<< $($a s3api list-object-versions --bucket $b|jq -r '.DeleteMarkers[]?|"--key \(.Key) --version-id \(.VersionId)"')
+    fi
+  fi
+
+  if [[ $postlistdeletemarkers == 1 ]];then
+    title "POST # List of delete markers"
+    dmarkers=$($a s3api list-object-versions --bucket $b)
+    jq -r '.DeleteMarkers'<<< $dmarkers
+  fi
+
+  # Remove bucket
+  if [[ $removebucket == 1 ]];then
+    title "Removing bucket \"$b\""
+    $a s3 rb s3://$b
+  fi
+
+  # Remove the test files
+  if [[ $enablefileuploads == 1 ]];then
+    title "Cleaning up local files"
+    for ((i=1;i<=$c;i++));do
+      rm test$i
+    done
+  fi
 fi
-
-title "POST # List of delete markers"
-$a s3api list-object-versions --bucket $b
-
-# Remove bucket
-title "Removing bucket \"$b\""
-$a s3 rb s3://$b
-
-# Remove the test files
-title "Cleaning up local files"
-for ((i=1;i<=$c;i++));do
-  rm test$i
-done
