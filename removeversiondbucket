@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 a='aws --endpoint-url https://webscaledemo.netapp.com'
-b=bversion
+b=bucket
 c=3
 d=2
 # Switchboard options, set 1 to enable
@@ -71,6 +71,7 @@ if [[ ! -z $bucket ]];then
   # PUT C files with D versions each
   if [[ $enablefileuploads == 1 ]];then
   title "Creating files and update to get two versions"
+  if [[ $enableversioning == 0 ]];then d=1;fi
   for ((i=1;i<=$c;i++));do
     for ((j=1;j<=$d;j++));do
       date > test$i
