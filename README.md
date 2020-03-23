@@ -56,6 +56,12 @@ Installation
    c=3
    d=2
    ```
+   * Internally signed certs, you can do something like this:
+   ```bash
+   a='aws --endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem'
+   ```
+
+   * **Note:** the script will not work for self-signed certificates.
 
 4. The switchboard is a section of variables that lets you turn on or off a phase of the workflow.
 
