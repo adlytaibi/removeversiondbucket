@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-a='aws --endpoint-url https://webscaledemo.netapp.com'
+a='aws --endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem'
 b=bucket
 c=3
 d=2
@@ -58,7 +58,9 @@ if [[ ! -z $bucket ]];then
   # Check bucket versioning
   if [[ $enableversioning == 1 ]];then
     title "Check versioning on bucket \"$b\""
-    v=$($a s3api get-bucket-versioning --bucket $b|jq -r '.Status')
+    v=$($a s3api get-bucket-versioning --bucket $b)
+    [[ $? == 0 ]] || { echo "Cannot proceed, exiting"; exit 1;}
+    v=$(jq -r '.Status'<<<$v)
     if [[ $v == "Enabled" ]]; then versiond=yes; echo $v;fi
 
     # Enable versioning on bucket
@@ -113,7 +115,7 @@ if [[ ! -z $bucket ]];then
       title "Deleting all file versions in bucket \"$b\""
       while read i;do
         $a s3api delete-object --bucket $b $i
-      done<<< $($a s3api list-object-versions --bucket $b|jq -r '.Versions[]?|"--key \(.Key) --version-id \(.VersionId)"')
+      done< <($a s3api list-object-versions --bucket $b|jq -r '.Versions[]?|"--key \(.Key) --version-id \(.VersionId)"')
     fi
   fi
 
@@ -138,7 +140,7 @@ if [[ ! -z $bucket ]];then
       title "Deleting all delete markers in bucket \"$b\""
       while read i;do
         $a s3api delete-object --bucket $b $i
-      done<<< $($a s3api list-object-versions --bucket $b|jq -r '.DeleteMarkers[]?|"--key \(.Key) --version-id \(.VersionId)"')
+      done< <($a s3api list-object-versions --bucket $b|jq -r '.DeleteMarkers[]?|"--key \(.Key) --version-id \(.VersionId)"')
     fi
   fi
 
