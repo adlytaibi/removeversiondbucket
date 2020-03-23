@@ -23,7 +23,7 @@ removebucket=1
 #
 command -v jq >/dev/null || { echo "jq is required."; exit 1; }
 command -v aws >/dev/null || { echo "awscli is required."; exit 1; }
-[[ $BASH_VERSINFO > 3 ]] || { echo "need bash>3."; exit 1; }
+[[ $BASH_VERSINFO > 2 ]] || { echo "need bash>3."; exit 1; }
 width=$(tput cols)
 pad=$(printf '#%.0s' {1..10})
 function title(){
