@@ -25,9 +25,16 @@ command -v jq >/dev/null || { echo "jq is required."; exit 1; }
 command -v aws >/dev/null || { echo "awscli is required."; exit 1; }
 [[ $BASH_VERSINFO > 2 ]] || { echo "need bash>3."; exit 1; }
 width=$(tput cols)
+prepad=$(printf '.%.0s' {1..10})
 pad=$(printf '#%.0s' {1..10})
+postpad=$(printf '+%.0s' {1..10})
 function title(){
-  echo $pad $@ $pad
+  case $1 in
+    PRE) p=$prepad;;
+    POST) p=$postpad;;
+    *) p=$pad;;
+  esac
+  echo -e "\033[01;32m$p $@ $p\033[00m"
 }
 showcounters=1
 
@@ -73,19 +80,27 @@ if [[ ! -z $bucket ]];then
 
   # PUT C files with D versions each
   if [[ $enablefileuploads == 1 ]];then
-  title "Creating files and update to get two versions"
   if [[ $enableversioning == 0 ]];then d=1;fi
+  title "Creating $c files and $d version(s)"
   for ((i=1;i<=$c;i++));do
     for ((j=1;j<=$d;j++));do
       date > test$i
-      [[ $showcounters == 1 ]] && echo -n "$i/$c $j/$d "
-      $a s3api put-object --bucket $b --key vers/test$i --body test$i
+      [[ $showcounters == 1 ]] && echo -n "file $i/$c version $j/$d "
+      $a s3api put-object --bucket $b --key vers/test$i --body test$i|jq -r '.VersionId?'
     done
   done
   fi
 
+  # Remove the test files
+  if [[ $enablefileuploads == 1 ]];then
+    title "Cleaning up local files"
+    for ((i=1;i<=$c;i++));do
+      rm test$i
+    done
+  fi
+
   if [[ $prelistobjects == 1 ]];then
-    title "PRE # List of objects"
+    title PRE "List of objects"
     $a s3api list-objects --bucket $b|jq -r '.Contents[].Key'
   fi
 
@@ -97,18 +112,19 @@ if [[ ! -z $bucket ]];then
     tot=$(jq -r '.Contents|length'<<<$listobjects)
     cnt=1
     for i in $objects;do
-      [[ $showcounters == 1 ]] && echo -n "$((cnt++))/$tot "
+      [[ $showcounters == 1 ]] && echo -n "Object $((cnt++))/$tot "
+      [[ $enableversioning == 0 ]] && echo
       $a s3api delete-object --bucket $b --key $i|jq -r '.VersionId'
     done
   fi
 
   if [[ $postlistobjects == 1 ]];then
-    title "POST # List of objects"
+    title POST "List of objects"
     $a s3api list-objects --bucket $b
   fi
 
   if [[ $prelistversions == 1 ]];then
-    title "PRE # List of file versions"
+    title PRE "List of file versions"
     listversions=$($a s3api list-object-versions --bucket $b)
     versions=$(jq -r '.Versions[]?'<<<$listversions)
     tot=$(jq -r '.Versions|length'<<<$listversions)
@@ -126,20 +142,20 @@ if [[ ! -z $bucket ]];then
       title "Deleting all file versions in bucket \"$b\""
       cnt=1
       while read i;do
-        [[ $showcounters == 1 ]] && echo -n "$((cnt++))/$tot "
-        $a s3api delete-object --bucket $b $i
+        [[ $showcounters == 1 ]] && echo -n "Version $((cnt++))/$tot "
+        $a s3api delete-object --bucket $b $i|jq -r '.VersionId'
       done< <($a s3api list-object-versions --bucket $b|jq -r '.Versions[]?|"--key \(.Key) --version-id \(.VersionId)"')
     fi
   fi
 
   if [[ $postlistversions == 1 ]];then
-    title "POST # List of file versions"
+    title POST "List of file versions"
     versions=$($a s3api list-object-versions --bucket $b)
     jq -r '.Versions'<<< $versions
   fi
 
   if [[ $prelistdeletemarkers == 1 ]];then
-    title "PRE # List of delete markers"
+    title PRE "List of delete markers"
     listdmarkers=$($a s3api list-object-versions --bucket $b)
     dmarkers=$(jq -r '.DeleteMarkers[]?'<<<$listdmarkers)
     tot=$(jq -r '.DeleteMarkers|length'<<<$listdmarkers)
@@ -157,14 +173,14 @@ if [[ ! -z $bucket ]];then
       title "Deleting all delete markers in bucket \"$b\""
       cnt=1
       while read i;do
-        [[ $showcounters == 1 ]] && echo -n "$((cnt++))/$tot "
-        $a s3api delete-object --bucket $b $i
+        [[ $showcounters == 1 ]] && echo -n "Delete Marker $((cnt++))/$tot "
+        $a s3api delete-object --bucket $b $i|jq -r '.VersionId'
       done< <($a s3api list-object-versions --bucket $b|jq -r '.DeleteMarkers[]?|"--key \(.Key) --version-id \(.VersionId)"')
     fi
   fi
 
   if [[ $postlistdeletemarkers == 1 ]];then
-    title "POST # List of delete markers"
+    title POST "List of delete markers"
     dmarkers=$($a s3api list-object-versions --bucket $b)
     jq -r '.DeleteMarkers'<<< $dmarkers
   fi
@@ -173,13 +189,5 @@ if [[ ! -z $bucket ]];then
   if [[ $removebucket == 1 ]];then
     title "Removing bucket \"$b\""
     $a s3 rb s3://$b
-  fi
-
-  # Remove the test files
-  if [[ $enablefileuploads == 1 ]];then
-    title "Cleaning up local files"
-    for ((i=1;i<=$c;i++));do
-      rm test$i
-    done
   fi
 fi
