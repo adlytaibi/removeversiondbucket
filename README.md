@@ -3,17 +3,17 @@ Building and destroying an S3 bucket with versioning
 
 ![](https://raw.githubusercontent.com/adlytaibi/ss/master/removeversiondbucket/removeversiondbucket.gif)
 
-Whether you want to understand how to build and destroy a bucket with versioning or simply testing a few scenarios.
+Whether you want to understand how to build and destroy a bucket with versioning or simply testing a few scenarios. A default number parallel operations is set by a `governor` variable.
 This is a simple bash script that will go through the following workflow:
 - Create bucket
 - Check and enable versioning on the newly created or existing bucket
 - Create C-times test files and PUT
+- Delete the C-times test files
 - Update every file and PUT to create a new version of each file D-times
 - List and delete all files in the bucket
 - List and delete all files versions
 - List and delete all delete markers
 - Delete the bucket
-- Delete the C-times test files
  
 ### WARNING: The script will **DELETE** the bucket at the end. Don't use an existing bucket unless you don't care for it.
 
@@ -21,8 +21,10 @@ Pre-requisites
 --------------
 
 * aws-cli
-* jq 
 * bash (>=v3)
+* jq 
+* awk 
+* ps 
 
 Installation
 ------------
@@ -86,3 +88,12 @@ Installation
    #
    ```
 
+5. Other options like setting a `governor` value will limit the number of PUTs and DELETEs running in parallel. `showcounters` lets you hide the counters during the said parallel operations
+   ```bash
+   # Limit the number of parallel PUT and DELETE calls, set 0 for unlimited
+   governor=20
+   #
+   # Display Counters, set 1 to display
+   showcounters=1
+   #
+   ```

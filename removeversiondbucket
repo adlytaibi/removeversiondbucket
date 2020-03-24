@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 a='aws --endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem'
 b=bucket
-c=3
+c=100
 d=2
 # Switchboard options, set 1 to enable
 enableversioning=1
@@ -21,13 +21,24 @@ postlistdeletemarkers=1
 #
 removebucket=1
 #
+# Limit the number of parallel PUT and DELETE calls, set 0 for unlimited
+governor=20
+#
+# Display Counters, set 1 to display
+showcounters=1
+#
+# Pre-requisites checks
 command -v jq >/dev/null || { echo "jq is required."; exit 1; }
 command -v aws >/dev/null || { echo "awscli is required."; exit 1; }
+command -v awk >/dev/null || { echo "awk is required."; exit 1; }
+command -v ps >/dev/null || { echo "ps is required."; exit 1; }
 [[ $BASH_VERSINFO > 2 ]] || { echo "need bash>3."; exit 1; }
 width=$(tput cols)
 prepad=$(printf '.%.0s' {1..10})
 pad=$(printf '#%.0s' {1..10})
 postpad=$(printf '+%.0s' {1..10})
+mypid=$$
+
 function title(){
   case $1 in
     PRE) p=$prepad;;
@@ -36,7 +47,15 @@ function title(){
   esac
   echo -e "\033[01;32m$p $@ $p\033[00m"
 }
-showcounters=1
+
+function throttle(){
+  [[ $governor == 0 ]] && return
+  nproc=$(awk -vRS="$mypid" 'END{print int(NR/2)}'<<<$(ps -eoppid))
+  if [[ $nproc -gt $governor ]]; then
+    echo -e "\033[1;33mthrottling ($governor)...\033[00m"
+    wait 
+  fi
+}
 
 # Check for the bucket
 title "Check for bucket \"$b\""
@@ -80,15 +99,17 @@ if [[ ! -z $bucket ]];then
 
   # PUT C files with D versions each
   if [[ $enablefileuploads == 1 ]];then
-  if [[ $enableversioning == 0 ]];then d=1;fi
-  title "Creating $c files and $d version(s)"
-  for ((i=1;i<=$c;i++));do
-    for ((j=1;j<=$d;j++));do
-      date > test$i
-      [[ $showcounters == 1 ]] && echo -n "file $i/$c version $j/$d "
-      $a s3api put-object --bucket $b --key vers/test$i --body test$i|jq -r '.VersionId?'
+    if [[ $enableversioning == 0 ]];then d=1;fi
+    title "Creating $c files and $d version(s)"
+    for ((i=1;i<=$c;i++));do
+      for ((j=1;j<=$d;j++));do
+        date > test$i
+        [[ $showcounters == 1 ]] && dcnt="file $i/$c version $j/$d"
+        $a s3api put-object --bucket $b --key vers/test$i --body test$i|jq -r --arg dcnt "$dcnt" '.|"\(.VersionId) \($dcnt)"' &
+        throttle
+      done
     done
-  done
+    wait
   fi
 
   # Remove the test files
@@ -106,16 +127,18 @@ if [[ ! -z $bucket ]];then
 
   # Delete all Objects
   if [[ $deleteobjects == 1 ]];then
-    title "Deleting all files in bucket \"$b\""
     listobjects=$($a s3api list-objects --bucket $b)
     objects=$(jq -r '.Contents[].Key'<<<$listobjects)
     tot=$(jq -r '.Contents|length'<<<$listobjects)
     cnt=1
+    title "Deleting all $tot files in bucket \"$b\""
     for i in $objects;do
-      [[ $showcounters == 1 ]] && echo -n "Object $((cnt++))/$tot "
-      [[ $enableversioning == 0 ]] && echo
-      $a s3api delete-object --bucket $b --key $i|jq -r '.VersionId'
+      [[ $showcounters == 1 ]] && dcnt="Object $((cnt++))/$tot"
+      #[[ $enableversioning == 0 ]] && echo
+      $a s3api delete-object --bucket $b --key $i|jq -r --arg dcnt "$dcnt" '.|"\(.VersionId) \($dcnt)"' &
+      throttle
     done
+    wait
   fi
 
   if [[ $postlistobjects == 1 ]];then
@@ -139,12 +162,14 @@ if [[ ! -z $bucket ]];then
       tot=$(jq -r '.Versions|length'<<<$listversions)
     fi
     if [[ $versions ]];then
-      title "Deleting all file versions in bucket \"$b\""
+      title "Deleting all $tot file versions in bucket \"$b\""
       cnt=1
       while read i;do
-        [[ $showcounters == 1 ]] && echo -n "Version $((cnt++))/$tot "
-        $a s3api delete-object --bucket $b $i|jq -r '.VersionId'
+        [[ $showcounters == 1 ]] && dcnt="Version $((cnt++))/$tot"
+        $a s3api delete-object --bucket $b $i|jq -r --arg dcnt "$dcnt" '.|"\(.VersionId) \($dcnt)"' &
+        throttle
       done< <($a s3api list-object-versions --bucket $b|jq -r '.Versions[]?|"--key \(.Key) --version-id \(.VersionId)"')
+      wait
     fi
   fi
 
@@ -170,12 +195,14 @@ if [[ ! -z $bucket ]];then
       tot=$(jq -r '.DeleteMarkers|length'<<<$listdmarkers)
     fi
     if [[ $dmarkers ]];then
-      title "Deleting all delete markers in bucket \"$b\""
+      title "Deleting all $tot delete markers in bucket \"$b\""
       cnt=1
       while read i;do
-        [[ $showcounters == 1 ]] && echo -n "Delete Marker $((cnt++))/$tot "
-        $a s3api delete-object --bucket $b $i|jq -r '.VersionId'
+        [[ $showcounters == 1 ]] && dcnt="Delete Marker $((cnt++))/$tot"
+        $a s3api delete-object --bucket $b $i|jq -r --arg dcnt "$dcnt" '.|"\(.VersionId) \($dcnt)"' &
+        throttle
       done< <($a s3api list-object-versions --bucket $b|jq -r '.DeleteMarkers[]?|"--key \(.Key) --version-id \(.VersionId)"')
+      wait
     fi
   fi
 
