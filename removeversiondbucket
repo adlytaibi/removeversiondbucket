@@ -51,7 +51,7 @@ function title(){
 function throttle(){
   [[ $governor == 0 ]] && return
   if [[ $OSTYPE == "linux-gnu" ]];then d=2; else d=1;fi
-  nproc=$(awk '$1==p {c++} END{print int(c/d)}' p=$mypid d=$d<<<$(ps -eoppid))
+  nproc=$(awk '$1==p {c++} END{print int(c/d)}' p=$mypid d=$d< <(ps -eoppid))
   if [[ $nproc -gt $governor ]]; then
     echo -e "\033[1;33mthrottling ($governor)...\033[00m"
     wait 
