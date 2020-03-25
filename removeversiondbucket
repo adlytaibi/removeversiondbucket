@@ -1,44 +1,188 @@
 #!/usr/bin/env bash
-a='aws --endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem'
-b=bucket
-c=100
-d=2
-# Switchboard options, set 1 to enable
-enableversioning=1
-enablefileuploads=1
-#
-prelistobjects=1
-deleteobjects=1
-postlistobjects=1
-#
-prelistversions=1
-deleteversions=1
-postlistversions=1
-#
-prelistdeletemarkers=1
-deletedeletemarkers=1
-postlistdeletemarkers=1
-#
-removebucket=1
-#
-# Limit the number of parallel PUT and DELETE calls, set 0 for unlimited
-governor=20
-#
-# Display Counters, set 1 to display
-showcounters=1
-#
 # Pre-requisites checks
 command -v jq >/dev/null || { echo "jq is required."; exit 1; }
 command -v aws >/dev/null || { echo "awscli is required."; exit 1; }
 command -v awk >/dev/null || { echo "awk is required."; exit 1; }
 command -v ps >/dev/null || { echo "ps is required."; exit 1; }
+command -v bc >/dev/null || { echo "bc is required."; exit 1; }
 [[ $BASH_VERSINFO > 2 ]] || { echo "need bash>3."; exit 1; }
+
+# Full help page
+function usage() {
+  echo -e "\033[1mUSAGE\033[0m\n\tBuilding and destroying an S3 bucket with versioning\n\n\033[1mSYNOPSIS\033[0m"
+  shortusage
+  echo -e "\n\033[1mDESCRIPTION\033[0m"
+  echo -e "\t\033[1m-a=\033[0m"OPTIONS", \033[1m--awscliopts=\033[0m\"OPTIONS\"\t(\033[1mdefault:\033[0m \"--endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem\")"
+  echo -e "\t\tRefer to aws help pages. Do not add aws at the beginning of the options, it's already taken care of."
+  echo -e "\n\t\033[1m-b=\033[0mNAME, \033[1m--bucket=\033[0mNAME\t(\033[1mdefault:\033[0m bucket)"
+  echo -e "\t\tProvide a bucket name for existing or to be created."
+  echo -e "\n\t\033[1m-c=\033[0mVALUE, \033[1m--numfiles=\033[0mVALUE\t(\033[1mdefault:\033[0m 100)"
+  echo -e "\t\tNumber of test files that will be generated and PUT into bucket."
+  echo -e "\n\t\033[1m-d=\033[0mVALUE, \033[1m--numvers=\033[0mVALUE\t(\033[1mdefault:\033[0m 2) "
+  echo -e "\t\tNumber of versions per file."
+  echo -e "\n\t\033[1m-v\033[0m, \033[1m--donotenableversioning\033[0m, \033[1m+v\033[0m, \033[1m--enableversioning\033[0m\t\033[1m\033[0m\t(\033[1mdefault:\033[0m Enabled)"
+  echo -e "\t\tEnable or don't enable versioning on the bucket."
+  echo -e "\n\t\033[1m-f\033[0m, \033[1m--disablefileuploads\033[0m, \033[1m+f\033[0m, \033[1m--enablefileuploads\033[0m\t(\033[1mdefault:\033[0m Enabled)"
+  echo -e "\t\tCreate and update (PUT) files."
+  echo -e "\n\t\033[1m-rb\033[0m, \033[1m--removebucket\033[0m, \033[1m-kb\033[0m, \033[1m--keepbucket\033[0m\t(\033[1mdefault:\033[0m Delete bucket)"
+  echo -e "\t\tKeep or delete the bucket. This delete command will fail if the bucket is not empty."
+  echo -e "\n\t\033[1m-g\033[0m=VALUE, \033[1m--governor\033[0m=VALUE\t(\033[1mdefault:\033[0m 20)"
+  echo -e "\t\tThrottle the number of parallel PUT or DELETE operations. Set to 0 for unlimited.\n\t\tSet this a value you're comfortable with depending how powerful your machine is."
+  echo -e "\n\t\033[1m-s\033[0m, \033[1m--hidecounters\033[0m\t(\033[1mdefault:\033[0m Disabled)"
+  echo -e "\t\tSet this switch to hide counters from being printed. Counters are shown by default."
+  echo -e "\n\t\033[1m-r\033[0m, \033[1m--showonly\033[0m"
+  echo -e "\t\tThis option will only show the parameters and not execute the program.\n\t\tThis is a great way to check the parameters before launching what could be sometimes a long running operations."
+  echo -e "\n\t\033[1m-sr\033[0m, \033[1m--showrun\033[0m"
+  echo -e "\t\tThis option will show the parameters and execute the program."
+  echo -e "\n\t\033[1m-sb\033[0m=VALUE, \033[1m--switchboard\033[0m=VALUE\t(\033[1mdefault:\033[0m 777)"
+  echo -e "\t\tIn order to reduce the number of options to set for the following 9 parameters. We'll be using the octal numbers similar to *nix style file permissions."
+  echo -e "\t\tThere are three set of phases the program goes through \033[1mObject\033[0m, \033[1mFile versions\033[0m and \033[1mDelete markers\033[0m."
+  echo -e "\t\tEach phase has three sets of parameters \033[1mpre-delete list\033[0m, \033[1mdelete operation\033[0m and \033[1mpost-delete list\033[0m."
+  echo -e "\t\tThe pre and post listing steps are only for printing and pretty much noise. The delete operation is what's important."
+  echo -e "\n\t\tThe 3 phases have been assigned a digit location in the \033[1mswitchboard\033[0m option."
+  echo -e "\t\tThe \033[1mleft\033[0m digit has been assigned to the \033[1mObject\033[0m phase."
+  echo -e "\t\tThe \033[1mmiddle\033[0m digit has been assigned to the \033[1mFile versions\033[0m phase."
+  echo -e "\t\tThe \033[1mright\033[0m digit has been assigned to the \033[1mDelete markers\033[0m phase."
+  echo -e "\n\t\tEach phase's digit value is the addition of the following options' values."
+  echo -e "\t\tThe \033[1mpre-delete list\033[0m options have been assigned a value of \033[1m4\033[0m to enable and a \033[1m0\033[0m to disable."
+  echo -e "\t\tThe \033[1mdelete operation\033[0m options have been assigned a value of \033[1m2\033[0m to enable and a \033[1m0\033[0m to disable."
+  echo -e "\t\tThe \033[1mpost-delete list\033[0m options have been assigned a value of \033[1m1\033[0m to enable and a \033[1m0\033[0m to disable."
+  echo -e "\n\t\t\033[4mFor example:\033[0m"
+  echo -e "\t\t\t1- Enabling all options for all phases would the addition of 4,2,1 which adds up to 7,7,7 put together would form a \033[1mswitchboard\033[0m option of \033[1m777\033[0m."
+  echo -e "\n\t\t\t2- Enabling only pre-delete listing for all phases is a 4 for each phase and put together forms a \033[1mswitchboard\033[0m option of \033[1m444\033[0m."
+  echo -e "\n\t\t\t3- Performing the delete operations and post-delete list for \033[1mFile versions\033[0m and \033[1mDelete markers\033[0m phases only,\n\t\t\t  the \033[1mObject\033[0m phase would score a \033[1m0\033[0m and the other two phases would score a \033[1m3\033[0m each, so the \033[1mswitchboard\033[0m option value would be \033[1m033\033[0m."
+  echo -e "\n\033[1mEXAMPLES\033[0m"
+  echo -e "\tThe following command will show the parameters then executes:"
+  echo -e "\n\t\$ $(basename $0) \033[1m-sr\033[0m \033[1m-a=\033[0m\"--endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem\" \033[1m-b=\033[0mmybucket \033[1m-c=\033[0m5000 \033[1m-d=\033[0m5 \033[1m-kb \033[1m-g=\033[0m30 \033[1m-sb=\033[0m222 \033[1m-rb\033[0m"
+  echo -e "\n\taws cli extra options (-a): \033[1maws --endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem\033[0m"
+  echo -e "\tBucket name (-b): \033[1mmybucket\033[0m"
+  echo -e "\tNumber of files to create (-c): \033[1m5000\033[0m"
+  echo -e "\tNumber of versions per file to create (-d): \033[1m5\033[0m"
+  echo -e "\tEnable versioning (-v,+v): \e[1;32mEnabled\e[0m"
+  echo -e "\tEnable file uploads (-f,+f): \e[1;32mEnabled\e[0m"
+  echo -e "\tDelete bucket (-rb,-kb): \e[1;32mEnabled\e[0m"
+  echo -e "\tThrottle parallel (-g): \033[1m30\033[0m"
+  echo -e "\tShow counters (-s): \e[1;32mEnabled\e[0m"
+  echo -e "\tExecute after show (-sr): \e[1;32mEnabled\e[0m"
+  echo -e "\tSwitchboard setting (-sb): \033[1m222\033[0m"
+  echo -e "\t====================== Object phase ======================"
+  echo -e "\tPre-Delete object list, objects: \e[1;31mDisabled\e[0m"
+  echo -e "\t   DELETE all objects: \e[1;32mEnabled\e[0m"
+  echo -e "\tPost Delete object, list objects: \e[1;31mDisabled\e[0m"
+  echo -e "\t================== File versions phase =================="
+  echo -e "\tPre-Delete file versions, list versions: \e[1;31mDisabled\e[0m"
+  echo -e "\t   DELETE all files' versions: \e[1;32mEnabled\e[0m"
+  echo -e "\tPost Delete file versions, list versions:: \e[1;31mDisabled\e[0m"
+  echo -e "\t================== Delete markers phase =================="
+  echo -e "\tPre-Delete delete markers, list delete markers: \e[1;31mDisabled\e[0m"
+  echo -e "\t   DELETE all delete markers: \e[1;32mEnabled\e[0m"
+  echo -e "\tPost Delete delete markers, list delete markers: \e[1;31mDisabled\e[0m"
+  echo -e "\t...<Truncated execution output>..."
+  echo -e "\n\033[1mAUTHOR\033[0m"
+  echo -e "\tWritten by Adly Taibi."
+  echo -e "\n\033[1mCOPYRIGHT\033[0m"
+  echo -e "\tLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>."
+  echo -e "\tThis is free software: you are free to change and redistribute it.  There is NO WARRANTY, to the extent permitted by law."
+  exit 1
+}
+
+# Mini help message
+function shortusage() {
+  echo -e "\t\033[1m$(basename $0)\033[0m [\033[1m-h\033[0m|\033[1m--help\033[0m]\n\t[[\033[1m-a\033[0m|\033[1m--awscliopts\033[0m]="OPTIONS"] [[\033[1m-b\033[0m|\033[1m--bucket\033[0m]=NAME] [[\033[1m-c\033[0m|\033[1m--numfiles\033[0m]=VALUE] [[\033[1m-d\033[0m|\033[1m--numvers\033[0m]=VALUE]\n\t[[\033[1m-v\033[0m|\033[1m--donotenableversioning\033[0m] | [\033[1m+v\033[0m|\033[1m--enableversioning\033[0m]]\n\t[[\033[1m-f\033[0m|\033[1m--disablefileuploads\033[0m] | [\033[1m+f\033[0m|\033[1m--enablefileuploads\033[0m]]\n\t[[\033[1m-rb\033[0m|\033[1m--removebucket\033[0m] | [\033[1m-kb\033[0m|\033[1m--keepbucket\033[0m]]\n\t[[\033[1m-g\033[0m|\033[1m--governor\033[0m]=VALUE] [\033[1m-s\033[0m|\033[1m--hidecounters\033[0m]\n\t[\033[1m-r\033[0m|\033[1m--showonly\033[0m] [\033[1m-sr\033[0m|\033[1m--showrun\033[0m]\n\t[[\033[1m-sb\033[0m|\033[1m--switchboard\033[0m]=VALUE]\n"
+}
+
+function truefalse() {
+  if [[ $1 == 1 ]];then
+    echo -e "\e[1;32mEnabled\e[0m"
+  else
+    echo -e "\e[1;31mDisabled\e[0m"
+  fi
+}
+
+# Read arguments if any
+while [[ ! -z $1 ]]
+do
+  case $1 in
+    -a=*|--awscliopts=*) a=${1#*=} ;;
+    -b=*|--bucket=*) b=${1#*=} ;;
+    -c=*|--numfiles=*) c=${1#*=} ;;
+    -d=*|--numvers=*) d=${1#*=} ;;
+    -v|--donotenableversioning) enableversioning=0 ;;
+    +v|--enableversioning) enableversioning=1 ;;
+    -f|--disablefileuploads) enablefileuploads=0 ;;
+    +f|--enablefileuploads) enablefileuploads=1 ;;
+    -kb|--keepbucket) removebucket=0 ;;
+    -rb|--removebucket) removebucket=1 ;;
+    -g=*|--governor=*) governor=${1#*=} ;;
+    -s|--hidecounters) showcounters=0 ;;
+    -r|--showonly) showonly=1 ;;
+    -sr|--showrun) showrun=1 ;;
+    -sb=*|--switchboard=*) octalmap=${1#*=} ;;
+    -h|--help) usage ;;
+    *) echo "\"${1%=*}\" is an invalid options"; shortusage; exit 1 ;;
+  esac
+  shift
+done
+
+# Default settings
+[[ -z $a ]] && a='--endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem'
+[[ -z $b ]] && b=bucket
+[[ -z $c ]] && c=100
+[[ -z $d ]] && d=2
+[[ -z $enableversioning ]] && enableversioning=1
+[[ -z $enablefileuploads ]] && enablefileuploads=1
+[[ -z $removebucket ]] && removebucket=1
+[[ -z $governor ]] && governor=20
+[[ -z $showcounters ]] && showcounters=1
+[[ -z $octalmap ]] && octalmap=777
+l=$(printf '%09d' $(bc <<< "ibase=8;obase=2;$octalmap"))
+prelistobjects=${l:0:1}
+deleteobjects=${l:1:1}
+postlistobjects=${l:2:1}
+prelistversions=${l:3:1}
+deleteversions=${l:4:1}
+postlistversions=${l:5:1}
+prelistdeletemarkers=${l:6:1}
+deletedeletemarkers=${l:7:1}
+postlistdeletemarkers=${l:8:1}
+
+# Parameters display
+if [[ $showonly == 1 || $showrun == 1 ]]; then
+  echo -e "aws cli extra options (-a): \033[1maws $a\033[0m"
+  echo -e "Bucket name (-b): \033[1m$b\033[0m"
+  echo -e "Number of files to create (-c): \033[1m$c\033[0m"
+  echo -e "Number of versions per file to create (-d): \033[1m$d\033[0m"
+  echo -e "Enable versioning (-v,+v): $(truefalse $enableversioning)"
+  echo -e "Enable file uploads (-f,+f): $(truefalse $enablefileuploads)"
+  echo -e "Delete bucket (-rb,-kb): $(truefalse $removebucket)"
+  echo -e "Throttle parallel (-g): \033[1m$governor\033[0m"
+  echo -e "Show counters (-s): $(truefalse $showcounters)"
+  echo -e "Execute after show (-sr): $(truefalse $showrun)"
+  echo -e "Switchboard setting (-sb): \033[1m$octalmap\033[0m"
+  echo -e "$(printf '=%.0s' {1..22}) Object phase $(printf '=%.0s' {1..22})"
+  echo -e "Pre-Delete object list, objects: $(truefalse $prelistobjects)"
+  echo -e "   DELETE all objects: $(truefalse $deleteobjects)"
+  echo -e "Post Delete object, list objects: $(truefalse $postlistobjects)"
+  echo -e "$(printf '=%.0s' {1..18}) File versions phase $(printf '=%.0s' {1..18})"
+  echo -e "Pre-Delete file versions, list versions: $(truefalse $prelistversions)"
+  echo -e "   DELETE all files' versions: $(truefalse $deleteversions)"
+  echo -e "Post Delete file versions, list versions:: $(truefalse $postlistversions)"
+  echo -e "$(printf '=%.0s' {1..18}) Delete markers phase $(printf '=%.0s' {1..18})"
+  echo -e "Pre-Delete delete markers, list delete markers: $(truefalse $prelistdeletemarkers)"
+  echo -e "   DELETE all delete markers: $(truefalse $deletedeletemarkers)"
+  echo -e "Post Delete delete markers, list delete markers: $(truefalse $postlistdeletemarkers)"
+  [[ $showrun == 1 ]] || exit 0
+fi
+
+# Various vars
+a="aws $a"
 width=$(tput cols)
 prepad=$(printf '.%.0s' {1..10})
 pad=$(printf '#%.0s' {1..10})
 postpad=$(printf '+%.0s' {1..10})
 mypid=$$
 
+# Pretty titles function
 function title(){
   case $1 in
     PRE) p=$prepad;;
@@ -48,6 +192,7 @@ function title(){
   echo -e "\033[01;32m$p $@ $p\033[00m"
 }
 
+# Throttle function
 function throttle(){
   [[ $governor == 0 ]] && return
   if [[ $OSTYPE == "linux-gnu" ]];then d=2; else d=1;fi
