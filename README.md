@@ -55,7 +55,7 @@ Installation
    ```bash
    ./removeversiondbucket -a='--endpoint-url https://webscaledemo.netapp.com'
    ```
-   * Internally signed certs, you can do something like this:
+   Internally signed certs, you can do something like this:
    ```bash
    ./removeversiondbucket -a='--endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem'
    ```
@@ -66,7 +66,7 @@ Usage
 -----
 
    ```bash
-   [1mUSAGE[0m
+   \033[1mUSAGE\033[0m
 	   Building and destroying an S3 bucket with versioning
    
    [1mSYNOPSIS[0m
