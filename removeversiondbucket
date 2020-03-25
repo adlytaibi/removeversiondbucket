@@ -195,7 +195,7 @@ function title(){
 # Throttle function
 function throttle(){
   [[ $governor == 0 ]] && return
-  if [[ $OSTYPE == "linux-gnu" ]];then d=2; else d=1;fi
+  if [[ $OSTYPE == "linux-gnu" || $OSTYPE == "darwin"* ]];then d=2; else d=1;fi
   nproc=$(awk '$1==p {c++} END{print int(c/d)}' p=$mypid d=$d< <(ps -eoppid))
   if [[ $nproc -gt $governor ]]; then
     echo -e "\033[1;33mthrottling ($governor)...\033[00m"
@@ -205,8 +205,11 @@ function throttle(){
 
 # Check for the bucket
 title "Check for bucket \"$b\""
-bhead=$($a s3api head-bucket --bucket $b 2>&1|sed -n 's/[^0-9]*\([0-9]\{3\}\).*/\1/p')
-case $bhead in
+bhead=$($a s3api head-bucket --bucket $b 2>&1)
+rcode=$?
+scode=$(sed -n 's/[^0-9]*\([0-9]\{3\}\).*/\1/p'<<<$bhead)
+[[ -z $scode ]] && { echo "Bucket \"$b\" already exists."; bucket=yes; }
+case $scode in
   404)
     echo "Bucket named \"$b\" is available"
     newbuck=yes
@@ -216,7 +219,7 @@ case $bhead in
     exit 1
     ;;
   *)
-    bucket=yes
+    [[ $rcode == 0 ]] || { echo "Maybe a problem with endpoint URL."; exit 1;}
     ;;
 esac
 
