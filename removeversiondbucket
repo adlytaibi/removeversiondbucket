@@ -126,7 +126,7 @@ do
 done
 
 # Random name generation
-l="$(sed 's/ //g' <<< $(echo {a..z} {A..Z} {0..9}))"
+l="$(sed 's/ //g' <<< $(echo {a..z} {0..9}))"
 bucket=rvb
 for ((i;i<9;i++))
 do
