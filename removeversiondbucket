@@ -20,8 +20,8 @@ function usage() {
   echo -e "\t\tNumber of test files that will be generated and PUT into bucket."
   echo -e "\n\t\033[1m-d=\033[0mVALUE, \033[1m--numvers=\033[0mVALUE\t(\033[1mdefault:\033[0m 2) "
   echo -e "\t\tNumber of versions per file."
-  echo -e "\n\t\033[1m-v\033[0m, \033[1m--donotenableversioning\033[0m, \033[1m+v\033[0m, \033[1m--enableversioning\033[0m\t\033[1m\033[0m\t(\033[1mdefault:\033[0m Enabled)"
-  echo -e "\t\tEnable or don't enable versioning on the bucket."
+  echo -e "\n\t\033[1m-v\033[0m, \033[1m--suspendversioning\033[0m, \033[1m+v\033[0m, \033[1m--enableversioning\033[0m\t\033[1m\033[0m\t(\033[1mdefault:\033[0m Enabled)"
+  echo -e "\t\tEnable or suspend versioning on the bucket."
   echo -e "\n\t\033[1m-f\033[0m, \033[1m--disablefileuploads\033[0m, \033[1m+f\033[0m, \033[1m--enablefileuploads\033[0m\t(\033[1mdefault:\033[0m Enabled)"
   echo -e "\t\tCreate and update (PUT) files."
   echo -e "\n\t\033[1m-rb\033[0m, \033[1m--removebucket\033[0m, \033[1m-kb\033[0m, \033[1m--keepbucket\033[0m\t(\033[1mdefault:\033[0m Delete bucket)"
@@ -88,7 +88,7 @@ function usage() {
 
 # Mini help message
 function shortusage() {
-  echo -e "\t\033[1m$(basename $0)\033[0m [\033[1m-h\033[0m|\033[1m--help\033[0m]\n\t[[\033[1m-a\033[0m|\033[1m--awscliopts\033[0m]="OPTIONS"] [[\033[1m-b\033[0m|\033[1m--bucket\033[0m]=NAME] [[\033[1m-c\033[0m|\033[1m--numfiles\033[0m]=VALUE] [[\033[1m-d\033[0m|\033[1m--numvers\033[0m]=VALUE]\n\t[[\033[1m-v\033[0m|\033[1m--donotenableversioning\033[0m] | [\033[1m+v\033[0m|\033[1m--enableversioning\033[0m]]\n\t[[\033[1m-f\033[0m|\033[1m--disablefileuploads\033[0m] | [\033[1m+f\033[0m|\033[1m--enablefileuploads\033[0m]]\n\t[[\033[1m-rb\033[0m|\033[1m--removebucket\033[0m] | [\033[1m-kb\033[0m|\033[1m--keepbucket\033[0m]]\n\t[[\033[1m-g\033[0m|\033[1m--governor\033[0m]=VALUE] [\033[1m-s\033[0m|\033[1m--hidecounters\033[0m]\n\t[\033[1m-r\033[0m|\033[1m--showonly\033[0m] [\033[1m-sr\033[0m|\033[1m--showrun\033[0m]\n\t[[\033[1m-sb\033[0m|\033[1m--switchboard\033[0m]=VALUE]\n"
+  echo -e "\t\033[1m$(basename $0)\033[0m [\033[1m-h\033[0m|\033[1m--help\033[0m]\n\t[[\033[1m-a\033[0m|\033[1m--awscliopts\033[0m]="OPTIONS"] [[\033[1m-b\033[0m|\033[1m--bucket\033[0m]=NAME] [[\033[1m-c\033[0m|\033[1m--numfiles\033[0m]=VALUE] [[\033[1m-d\033[0m|\033[1m--numvers\033[0m]=VALUE]\n\t[[\033[1m-v\033[0m|\033[1m--suspendversioning\033[0m] | [\033[1m+v\033[0m|\033[1m--enableversioning\033[0m]]\n\t[[\033[1m-f\033[0m|\033[1m--disablefileuploads\033[0m] | [\033[1m+f\033[0m|\033[1m--enablefileuploads\033[0m]]\n\t[[\033[1m-rb\033[0m|\033[1m--removebucket\033[0m] | [\033[1m-kb\033[0m|\033[1m--keepbucket\033[0m]]\n\t[[\033[1m-g\033[0m|\033[1m--governor\033[0m]=VALUE] [\033[1m-s\033[0m|\033[1m--hidecounters\033[0m]\n\t[\033[1m-r\033[0m|\033[1m--showonly\033[0m] [\033[1m-sr\033[0m|\033[1m--showrun\033[0m]\n\t[[\033[1m-sb\033[0m|\033[1m--switchboard\033[0m]=VALUE]\n"
 }
 
 function truefalse() {
@@ -107,7 +107,7 @@ do
     -b=*|--bucket=*) b=${1#*=} ;;
     -c=*|--numfiles=*) c=${1#*=} ;;
     -d=*|--numvers=*) d=${1#*=} ;;
-    -v|--donotenableversioning) enableversioning=0 ;;
+    -v|--suspendversioning) enableversioning=0 ;;
     +v|--enableversioning) enableversioning=1 ;;
     -f|--disablefileuploads) enablefileuploads=0 ;;
     +f|--enablefileuploads) enablefileuploads=1 ;;
@@ -232,17 +232,27 @@ fi
 
 if [[ ! -z $bucket ]];then
   # Check bucket versioning
+  title "Check versioning on bucket \"$b\""
+  v=$($a s3api get-bucket-versioning --bucket $b)
+  [[ $? == 0 ]] || { echo "Cannot proceed, exiting"; exit 1;}
+  versiond=$(jq -r '.Status'<<<$v)
+  if [[ -z $versiond ]];then
+    echo "Not version-enabled."
+  else
+    echo $versiond
+  fi
+  # Enable versioning on bucket
   if [[ $enableversioning == 1 ]];then
-    title "Check versioning on bucket \"$b\""
-    v=$($a s3api get-bucket-versioning --bucket $b)
-    [[ $? == 0 ]] || { echo "Cannot proceed, exiting"; exit 1;}
-    v=$(jq -r '.Status'<<<$v)
-    if [[ $v == "Enabled" ]]; then versiond=yes; echo $v;fi
-
-    # Enable versioning on bucket
-    if [[ -z $versiond && $enableversioning == 1 ]];then
+    if [[ $versiond == "Suspended" || -z $versiond ]];then
       title "Enabling versioning on bucket \"$b\""
       $a s3api put-bucket-versioning --bucket $b --versioning-configuration Status=Enabled
+    fi
+  fi
+  # Suspend versioning on bucket
+  if [[ $enableversioning == 0 ]];then
+    if [[ $versiond == "Enabled" ]];then
+      title "Suspending versioning on bucket \"$b\""
+      $a s3api put-bucket-versioning --bucket $b --versioning-configuration Status=Suspended
     fi
   fi
 

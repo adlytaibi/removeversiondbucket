@@ -6,7 +6,7 @@ Building and destroying an S3 bucket with versioning
 Whether you want to understand how to build and destroy a bucket with versioning or simply testing a few scenarios. A default number parallel operations is set by a `governor` variable.
 This is a highly customizable bash script that will go through any or all of the following workflows:
 - Create a bucket if it doesn't exist
-- Check and enable or don't enable versioning on the newly created or existing bucket
+- Check and enable or suspend versioning on the newly created or existing bucket
 - Create C-times test files and upload (PUT) to the bucket
 - Clean-up the C-times test files from the local file system
 - Update every file and PUT to create a new version of each file D-times
@@ -66,7 +66,8 @@ Installation
 Safe Example
 ------------
 
-In this example, `10 files` are uploaded with `2 versions` then only `delete markers` are deleted and the bucket is kept. Which means restoring the deleted files or an undelete.
+In this example, `10 files` are uploaded with `2 versions`, all files in the bucket are deleted, only `delete markers` are deleted and the bucket is kept. Which means restoring the deleted files or an undelete.
+* **_Note:_** For an existing bucket with files, `all` files are deleted and restored, the `10 files` with their `2 versions` and any file that existed in the bucket prior to enabling versioning.
 
 ```bash
 $ removeversiondbucket -a="--endpoint-url https://webscaledemo.netapp.com" \
@@ -201,7 +202,7 @@ Usage
    SYNOPSIS
 	   removeversiondbucket [-h|--help]
 	   [[-a|--awscliopts]=OPTIONS] [[-b|--bucket]=NAME] [[-c|--numfiles]=VALUE] [[-d|--numvers]=VALUE]
-	   [[-v|--donotenableversioning] | [+v|--enableversioning]]
+	   [[-v|--suspendversioning] | [+v|--enableversioning]]
 	   [[-f|--disablefileuploads] | [+f|--enablefileuploads]]
 	   [[-rb|--removebucket] | [-kb|--keepbucket]]
 	   [[-g|--governor]=VALUE] [-s|--hidecounters]
@@ -222,8 +223,8 @@ Usage
 	   -d=VALUE, --numvers=VALUE	(default: 2) 
 		   Number of versions per file.
    
-	   -v, --donotenableversioning, +v, --enableversioning		(default: Enabled)
-		   Enable or don't enable versioning on the bucket.
+	   -v, --suspendversioning, +v, --enableversioning		(default: Enabled)
+		   Enable or suspend versioning on the bucket.
    
 	   -f, --disablefileuploads, +f, --enablefileuploads	(default: Enabled)
 		   Create and update (PUT) files.
