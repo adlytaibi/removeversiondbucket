@@ -1,9 +1,9 @@
-Building and destroying an S3 bucket with versioning
-====================================================
+Custom workflows for S3 bucket with versioning
+==============================================
 
 ![](https://raw.githubusercontent.com/adlytaibi/ss/master/removeversiondbucket/removeversiondbucket.gif)
 
-Whether you want to understand how to build and destroy a bucket with versioning or simply testing a few scenarios. A default number parallel operations is set by a `governor` variable.
+This tool helps whether you want to understand how to build and destroy a bucket with versioning or simply testing a few scenarios and workflows. A default number parallel operations is set by a `governor` variable.
 This is a highly customizable bash script that will go through any or all of the following workflows:
 - Create a bucket if it doesn't exist
 - Check and enable or suspend versioning on the newly created or existing bucket
@@ -197,7 +197,7 @@ Usage
    ```bash
    ~ $ removeversiondbucket --help
    USAGE
-	   Building and destroying an S3 bucket with versioning
+     Custom workflows for S3 bucket with versioning
    
    SYNOPSIS
 	   removeversiondbucket [-h|--help]

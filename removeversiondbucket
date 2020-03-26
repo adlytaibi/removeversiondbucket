@@ -9,7 +9,7 @@ command -v bc >/dev/null || { echo "bc is required."; exit 1; }
 
 # Full help page
 function usage() {
-  echo -e "\033[1mUSAGE\033[0m\n\tBuilding and destroying an S3 bucket with versioning\n\n\033[1mSYNOPSIS\033[0m"
+  echo -e "\033[1mUSAGE\033[0m\n\tCustom workflows for S3 bucket with versioning\n\n\033[1mSYNOPSIS\033[0m"
   shortusage
   echo -e "\n\033[1mDESCRIPTION\033[0m"
   echo -e "\t\033[1m-a=\033[0m"OPTIONS", \033[1m--awscliopts=\033[0m\"OPTIONS\"\t(\033[1mdefault:\033[0m \"--endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem\")"
