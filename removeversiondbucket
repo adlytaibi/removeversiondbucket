@@ -3,6 +3,7 @@
 command -v jq >/dev/null || { echo "jq is required."; exit 1; }
 command -v aws >/dev/null || { echo "awscli is required."; exit 1; }
 command -v awk >/dev/null || { echo "awk is required."; exit 1; }
+command -v sed >/dev/null || { echo "sed is required."; exit 1; }
 command -v ps >/dev/null || { echo "ps is required."; exit 1; }
 command -v bc >/dev/null || { echo "bc is required."; exit 1; }
 [[ $BASH_VERSINFO > 2 ]] || { echo "need bash>3."; exit 1; }
@@ -14,7 +15,7 @@ function usage() {
   echo -e "\n\033[1mDESCRIPTION\033[0m"
   echo -e "\t\033[1m-a=\033[0m"OPTIONS", \033[1m--awscliopts=\033[0m\"OPTIONS\"\t(\033[1mdefault:\033[0m \"--endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem\")"
   echo -e "\t\tRefer to aws help pages. Do not add aws at the beginning of the options, it's already taken care of."
-  echo -e "\n\t\033[1m-b=\033[0mNAME, \033[1m--bucket=\033[0mNAME\t(\033[1mdefault:\033[0m bucket)"
+  echo -e "\n\t\033[1m-b=\033[0mNAME, \033[1m--bucket=\033[0mNAME\t(\033[1mdefault:\033[0m Randomly Generated with \033[1mrbv\033[0m prefix)"
   echo -e "\t\tProvide a bucket name for existing or to be created."
   echo -e "\n\t\033[1m-c=\033[0mVALUE, \033[1m--numfiles=\033[0mVALUE\t(\033[1mdefault:\033[0m 100)"
   echo -e "\t\tNumber of test files that will be generated and PUT into bucket."
@@ -124,9 +125,18 @@ do
   shift
 done
 
+# Random name generation
+l="$(sed 's/ //g' <<< $(echo {a..z} {A..Z} {0..9}))"
+bucket=rvb
+for ((i;i<9;i++))
+do
+  r=$(( $RANDOM % ${#l} ))
+  bucket+=${l:$r:1}
+done
+
 # Default settings
 [[ -z $a ]] && a='--endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem'
-[[ -z $b ]] && b=bucket
+[[ -z $b ]] && b=$bucket
 [[ -z $c ]] && c=100
 [[ -z $d ]] && d=2
 [[ -z $enableversioning ]] && enableversioning=1

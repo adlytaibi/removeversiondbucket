@@ -24,6 +24,7 @@ Pre-requisites
 * bash (>=v3)
 * jq
 * awk
+* sed
 * ps
 * bc
 
@@ -214,7 +215,7 @@ Usage
 	   -a=OPTIONS, --awscliopts="OPTIONS"	(default: "--endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem")
 		   Refer to aws help pages. Do not add aws at the beginning of the options, it's already taken care of.
    
-	   -b=NAME, --bucket=NAME	(default: bucket)
+	   -b=NAME, --bucket=NAME	(default: Randomly Generated with rbv prefix)
 		   Provide a bucket name for existing or to be created.
    
 	   -c=VALUE, --numfiles=VALUE	(default: 100)
