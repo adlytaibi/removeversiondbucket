@@ -4,27 +4,28 @@ Building and destroying an S3 bucket with versioning
 ![](https://raw.githubusercontent.com/adlytaibi/ss/master/removeversiondbucket/removeversiondbucket.gif)
 
 Whether you want to understand how to build and destroy a bucket with versioning or simply testing a few scenarios. A default number parallel operations is set by a `governor` variable.
-This is a simple bash script that will go through the following workflow:
-- Create bucket
-- Check and enable versioning on the newly created or existing bucket
-- Create C-times test files and PUT
-- Delete the C-times test files
+This is a highly customizable bash script that will go through any or all of the following workflows:
+- Create a bucket if it doesn't exist
+- Check and enable or don't enable versioning on the newly created or existing bucket
+- Create C-times test files and upload (PUT) to the bucket
+- Clean-up the C-times test files from the local file system
 - Update every file and PUT to create a new version of each file D-times
-- List and delete all files in the bucket
-- List and delete all files versions
-- List and delete all delete markers
-- Delete the bucket
+- List and/or delete `all files` in the bucket
+- List and/or delete `all files versions` in the bucket
+- List and/or delete `all delete markers` in the bucket
+- Keep or Delete the bucket
  
-### WARNING: In some workflow, the script will **DELETE** the bucket at the end. Unless `-kb` or `--keepbucket` switch is used.
+### WARNING: In some workflows, the script will **DELETE** the bucket at the end. Unless `-kb` or `--keepbucket` switch is used.
 
 Pre-requisites
 --------------
 
 * aws-cli
 * bash (>=v3)
-* jq 
-* awk 
-* ps 
+* jq
+* awk
+* ps
+* bc
 
 Installation
 ------------
@@ -65,12 +66,13 @@ Installation
 Safe Example
 ------------
 
-In this example, `10 files` are uploaded with `2 versions` then only `delete markers` are deleted and the bucket is kept. Which means restoring the deleted files.
+In this example, `10 files` are uploaded with `2 versions` then only `delete markers` are deleted and the bucket is kept. Which means restoring the deleted files or an undelete.
 
 ```bash
-$ removeversiondbucket -a="--endpoint-url https://webscaledemo.netapp.com" -c=10 -g=20 -b=restore -sb=202 -kb -sr
+$ removeversiondbucket -a="--endpoint-url https://webscaledemo.netapp.com" \
+-c=10 -g=20 -b=restore -sb=202 -kb -sr
 aws cli extra options (-a): aws --endpoint-url https://webscaledemo.netapp.com
-Bucket name (-b): bversion
+Bucket name (-b): restore
 Number of files to create (-c): 10
 Number of versions per file to create (-d): 2
 Enable versioning (-v,+v): Enabled
@@ -92,12 +94,12 @@ Post Delete file versions, list versions:: Disabled
 Pre-Delete delete markers, list delete markers: Disabled
    DELETE all delete markers: Enabled
 Post Delete delete markers, list delete markers: Disabled
-########## Check for bucket "bversion" ##########
-Bucket named "bversion" is available
-########## Creating bucket "bversion" ##########
-make_bucket: bversion
-########## Check versioning on bucket "bversion" ##########
-########## Enabling versioning on bucket "bversion" ##########
+########## Check for bucket "restore" ##########
+Bucket named "restore" is available
+########## Creating bucket "restore" ##########
+make_bucket: restore
+########## Check versioning on bucket "restore" ##########
+########## Enabling versioning on bucket "restore" ##########
 ########## Creating 10 files and 2 version(s) ##########
 Q0RFMDBGM0YtNkYyRS0xMUVBLTg5QjgtQUNDNzAwQkExNTQ5 file 1/10 version 1/2
 Q0RFMTk1RTItNkYyRS0xMUVBLTg3RDItOEMxNDAwQkExNTQ5 file 2/10 version 2/2
@@ -120,7 +122,7 @@ Q0VCNDI4NjYtNkYyRS0xMUVBLTkwQzItMTFFRjAwQkExNTQ5 file 8/10 version 1/2
 Q0VCOTU4ODktNkYyRS0xMUVBLTg4MzItMEJDMDAwQkExNTQ5 file 9/10 version 1/2
 Q0VCQTFCREMtNkYyRS0xMUVBLTlGNzYtNzQ4NTAwQkExNTQ5 file 10/10 version 1/2
 ########## Cleaning up local files ##########
-########## Deleting all 10 files in bucket "bversion" ##########
+########## Deleting all 10 files in bucket "restore" ##########
 Q0ZENTRGRjMtNkYyRS0xMUVBLTlGNUUtODNCMTAwQkExNTQ5 Object 1/10
 Q0ZENTlFMTQtNkYyRS0xMUVBLTlFNDUtNzQ5NjAwQkExNTQ5 Object 4/10
 Q0ZFMTBGQzUtNkYyRS0xMUVBLThCOUQtQ0U3RTAwQkExNTQ5 Object 5/10
@@ -131,7 +133,7 @@ Q0ZFMzgwQzgtNkYyRS0xMUVBLThDRTEtMTQzMDAwQkExNTQ5 Object 7/10
 Q0ZFNUEzQUEtNkYyRS0xMUVBLTk2NDktQzg3NDAwQkExNTQ5 Object 9/10
 Q0ZFNkRDMkItNkYyRS0xMUVBLTk4QUQtRkZEMjAwQkExNTQ5 Object 6/10
 Q0ZFRjQwOUMtNkYyRS0xMUVBLTgwNzMtQjNGRjAwQkExNTQ5 Object 10/10
-########## Deleting all 10 delete markers in bucket "bversion" ##########
+########## Deleting all 10 delete markers in bucket "restore" ##########
 Q0ZENTlFMTQtNkYyRS0xMUVBLTlFNDUtNzQ5NjAwQkExNTQ5 Delete Marker 4/10
 Q0ZFM0E3RDktNkYyRS0xMUVBLTk2NDktRENGMDAwQkExNTQ5 Delete Marker 3/10
 Q0ZENTRGRjMtNkYyRS0xMUVBLTlGNUUtODNCMTAwQkExNTQ5 Delete Marker 1/10
@@ -146,9 +148,10 @@ Q0ZFRjQwOUMtNkYyRS0xMUVBLTgwNzMtQjNGRjAwQkExNTQ5 Delete Marker 10/10
 
 You can then only list the files to show that they have been restored.
 ```bash
-$ removeversiondbucket -a="--endpoint-url https://webscaledemo.netapp.com" -b=restore -sb=400 -f -kb -sr
+$ removeversiondbucket -a="--endpoint-url https://webscaledemo.netapp.com" \
+-b=restore -sb=400 -f -kb -sr
 aws cli extra options (-a): aws --endpoint-url https://webscaledemo.netapp.com
-Bucket name (-b): bversion
+Bucket name (-b): restore
 Number of files to create (-c): 10
 Number of versions per file to create (-d): 2
 Enable versioning (-v,+v): Enabled
@@ -170,9 +173,9 @@ Post Delete file versions, list versions:: Disabled
 Pre-Delete delete markers, list delete markers: Disabled
    DELETE all delete markers: Disabled
 Post Delete delete markers, list delete markers: Disabled
-########## Check for bucket "bversion" ##########
-Bucket "bversion" already exists.
-########## Check versioning on bucket "bversion" ##########
+########## Check for bucket "restore" ##########
+Bucket "restore" already exists.
+########## Check versioning on bucket "restore" ##########
 Enabled
 .......... PRE List of objects ..........
 vers/test1
