@@ -66,6 +66,7 @@ function usage() {
   echo -e "\tDelete bucket (-rb,-kb): \e[1;32mEnabled\e[0m"
   echo -e "\tThrottle parallel (-g): \033[1m30\033[0m"
   echo -e "\tShow counters (-s): \e[1;32mEnabled\e[0m"
+  echo -e "\tShow elapsed time (-et): \e[1;31mDisabled\e[0m"
   echo -e "\tExecute after show (-sr): \e[1;32mEnabled\e[0m"
   echo -e "\tSwitchboard setting (-sb): \033[1m222\033[0m"
   echo -e "\t====================== Object phase ======================"
