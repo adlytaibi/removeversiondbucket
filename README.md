@@ -15,7 +15,7 @@ This is a simple bash script that will go through the following workflow:
 - List and delete all delete markers
 - Delete the bucket
  
-### WARNING: The script will **DELETE** the bucket at the end. Don't use an existing bucket unless you don't care for it.
+### WARNING: In some workflow, the script will **DELETE** the bucket at the end. Unless `-kb` or `--keepbucket` switch is used.
 
 Pre-requisites
 --------------
@@ -61,6 +61,131 @@ Installation
    ```
 
    * **_Note:_** the script will not work for self-signed certificates.
+
+Safe Example
+------------
+
+In this example, `10 files` are uploaded with `2 versions` then only `delete markers` are deleted and the bucket is kept. Which means restoring the deleted files.
+
+```bash
+$ removeversiondbucket -a="--endpoint-url https://webscaledemo.netapp.com" -c=10 -g=20 -b=restore -sb=202 -kb -sr
+aws cli extra options (-a): aws --endpoint-url https://webscaledemo.netapp.com
+Bucket name (-b): bversion
+Number of files to create (-c): 10
+Number of versions per file to create (-d): 2
+Enable versioning (-v,+v): Enabled
+Enable file uploads (-f,+f): Enabled
+Delete bucket (-rb,-kb): Disabled
+Throttle parallel (-g): 20
+Show counters (-s): Enabled
+Execute after show (-sr): Enabled
+Switchboard setting (-sb): 202
+====================== Object phase ======================
+Pre-Delete object list, objects: Disabled
+   DELETE all objects: Enabled
+Post Delete object, list objects: Disabled
+================== File versions phase ==================
+Pre-Delete file versions, list versions: Disabled
+   DELETE all files' versions: Disabled
+Post Delete file versions, list versions:: Disabled
+================== Delete markers phase ==================
+Pre-Delete delete markers, list delete markers: Disabled
+   DELETE all delete markers: Enabled
+Post Delete delete markers, list delete markers: Disabled
+########## Check for bucket "bversion" ##########
+Bucket named "bversion" is available
+########## Creating bucket "bversion" ##########
+make_bucket: bversion
+########## Check versioning on bucket "bversion" ##########
+########## Enabling versioning on bucket "bversion" ##########
+########## Creating 10 files and 2 version(s) ##########
+Q0RFMDBGM0YtNkYyRS0xMUVBLTg5QjgtQUNDNzAwQkExNTQ5 file 1/10 version 1/2
+Q0RFMTk1RTItNkYyRS0xMUVBLTg3RDItOEMxNDAwQkExNTQ5 file 2/10 version 2/2
+Q0RFNTNGNjUtNkYyRS0xMUVBLThGMjItQUMxNTAwQkExNTQ5 file 2/10 version 1/2
+Q0RFNjUwRDgtNkYyRS0xMUVBLTgxNjYtRkI0NjAwQkExNTQ5 file 1/10 version 2/2
+Q0RGNUUxM0ItNkYyRS0xMUVBLTlDRjAtNEQ4QTAwQkExNTQ5 file 3/10 version 1/2
+Q0UwQzlEOEUtNkYyRS0xMUVBLTkyQzYtNUNEMDAwQkExNTQ5 file 4/10 version 2/2
+Q0UwREQ2MTEtNkYyRS0xMUVBLThDNzctMTYzNjAwQkExNTQ5 file 3/10 version 2/2
+Q0U0MURFNjQtNkYyRS0xMUVBLTg0NDQtODJDNjAwQkExNTQ5 file 5/10 version 2/2
+Q0U0M0IzMjctNkYyRS0xMUVBLTlFNDgtMjUwODAwQkExNTQ5 file 4/10 version 1/2
+Q0U1MDVENUEtNkYyRS0xMUVBLTkxQTktN0I2NDAwQkExNTQ5 file 6/10 version 2/2
+Q0U2NEY2RTEtNkYyRS0xMUVBLThBNjMtNEExOTAwQkExNTQ5 file 5/10 version 1/2
+Q0VBNzdFMjQtNkYyRS0xMUVBLThDRDgtNDBDNzAwQkExNTQ5 file 7/10 version 2/2
+Q0VBOUExMDctNkYyRS0xMUVBLTk2MDktODhFQjAwQkExNTQ5 file 6/10 version 1/2
+Q0VCMzE2RUQtNkYyRS0xMUVBLThBM0ItQjkwRTAwQkExNTQ5 file 9/10 version 2/2
+Q0VCMzE2RUUtNkYyRS0xMUVBLTg3RTYtRUJEMTAwQkExNTQ5 file 8/10 version 2/2
+Q0VCNDAxNTMtNkYyRS0xMUVBLTg5QjctRDBBNTAwQkExNTQ5 file 7/10 version 1/2
+Q0VCMkVGREEtNkYyRS0xMUVBLTlEMkMtNkI2RjAwQkExNTQ5 file 10/10 version 2/2
+Q0VCNDI4NjYtNkYyRS0xMUVBLTkwQzItMTFFRjAwQkExNTQ5 file 8/10 version 1/2
+Q0VCOTU4ODktNkYyRS0xMUVBLTg4MzItMEJDMDAwQkExNTQ5 file 9/10 version 1/2
+Q0VCQTFCREMtNkYyRS0xMUVBLTlGNzYtNzQ4NTAwQkExNTQ5 file 10/10 version 1/2
+########## Cleaning up local files ##########
+########## Deleting all 10 files in bucket "bversion" ##########
+Q0ZENTRGRjMtNkYyRS0xMUVBLTlGNUUtODNCMTAwQkExNTQ5 Object 1/10
+Q0ZENTlFMTQtNkYyRS0xMUVBLTlFNDUtNzQ5NjAwQkExNTQ5 Object 4/10
+Q0ZFMTBGQzUtNkYyRS0xMUVBLThCOUQtQ0U3RTAwQkExNTQ5 Object 5/10
+Q0ZFMzU5QjYtNkYyRS0xMUVBLThBRUUtRkM0MzAwQkExNTQ5 Object 2/10
+Q0ZFM0E3RDktNkYyRS0xMUVBLTk2NDktRENGMDAwQkExNTQ5 Object 3/10
+Q0ZFMzgwQzctNkYyRS0xMUVBLThGODgtQkEyNDAwQkExNTQ5 Object 8/10
+Q0ZFMzgwQzgtNkYyRS0xMUVBLThDRTEtMTQzMDAwQkExNTQ5 Object 7/10
+Q0ZFNUEzQUEtNkYyRS0xMUVBLTk2NDktQzg3NDAwQkExNTQ5 Object 9/10
+Q0ZFNkRDMkItNkYyRS0xMUVBLTk4QUQtRkZEMjAwQkExNTQ5 Object 6/10
+Q0ZFRjQwOUMtNkYyRS0xMUVBLTgwNzMtQjNGRjAwQkExNTQ5 Object 10/10
+########## Deleting all 10 delete markers in bucket "bversion" ##########
+Q0ZENTlFMTQtNkYyRS0xMUVBLTlFNDUtNzQ5NjAwQkExNTQ5 Delete Marker 4/10
+Q0ZFM0E3RDktNkYyRS0xMUVBLTk2NDktRENGMDAwQkExNTQ5 Delete Marker 3/10
+Q0ZENTRGRjMtNkYyRS0xMUVBLTlGNUUtODNCMTAwQkExNTQ5 Delete Marker 1/10
+Q0ZFMzgwQzgtNkYyRS0xMUVBLThDRTEtMTQzMDAwQkExNTQ5 Delete Marker 7/10
+Q0ZFMTBGQzUtNkYyRS0xMUVBLThCOUQtQ0U3RTAwQkExNTQ5 Delete Marker 5/10
+Q0ZFNkRDMkItNkYyRS0xMUVBLTk4QUQtRkZEMjAwQkExNTQ5 Delete Marker 6/10
+Q0ZFMzgwQzctNkYyRS0xMUVBLThGODgtQkEyNDAwQkExNTQ5 Delete Marker 8/10
+Q0ZFMzU5QjYtNkYyRS0xMUVBLThBRUUtRkM0MzAwQkExNTQ5 Delete Marker 2/10
+Q0ZFNUEzQUEtNkYyRS0xMUVBLTk2NDktQzg3NDAwQkExNTQ5 Delete Marker 9/10
+Q0ZFRjQwOUMtNkYyRS0xMUVBLTgwNzMtQjNGRjAwQkExNTQ5 Delete Marker 10/10
+```
+
+You can then only list the files to show that they have been restored.
+```bash
+$ removeversiondbucket -a="--endpoint-url https://webscaledemo.netapp.com" -b=restore -sb=400 -f -kb -sr
+aws cli extra options (-a): aws --endpoint-url https://webscaledemo.netapp.com
+Bucket name (-b): bversion
+Number of files to create (-c): 10
+Number of versions per file to create (-d): 2
+Enable versioning (-v,+v): Enabled
+Enable file uploads (-f,+f): Disabled
+Delete bucket (-rb,-kb): Disabled
+Throttle parallel (-g): 20
+Show counters (-s): Enabled
+Execute after show (-sr): Enabled
+Switchboard setting (-sb): 400
+====================== Object phase ======================
+Pre-Delete object list, objects: Enabled
+   DELETE all objects: Disabled
+Post Delete object, list objects: Disabled
+================== File versions phase ==================
+Pre-Delete file versions, list versions: Disabled
+   DELETE all files' versions: Disabled
+Post Delete file versions, list versions:: Disabled
+================== Delete markers phase ==================
+Pre-Delete delete markers, list delete markers: Disabled
+   DELETE all delete markers: Disabled
+Post Delete delete markers, list delete markers: Disabled
+########## Check for bucket "bversion" ##########
+Bucket "bversion" already exists.
+########## Check versioning on bucket "bversion" ##########
+Enabled
+.......... PRE List of objects ..........
+vers/test1
+vers/test10
+vers/test2
+vers/test3
+vers/test4
+vers/test5
+vers/test6
+vers/test7
+vers/test8
+vers/test9
+```
 
 Usage
 -----
