@@ -167,7 +167,8 @@ fi
 [[ $enableversioning == 2 && $suspendversioning == 2 ]] && { enableversioning=1; suspendversioning=0; }
 [[ $enablefileuploads == 2 && $disablefileuploads == 2 ]] && { enablefileuploads=1; disablefileuploads=0; }
 [[ $removebucket == 2 && $keepbucket == 2 ]] && { removebucket=1; keepbucket=0; }
-[[ $showonly == 2 && $showrun == 2 ]] && { showonly=0; showrun=0; }
+[[ $showonly == 2 ]] && showonly=0
+[[ $showrun == 2 ]] && showrun=0
 [[ -z $governor ]] && governor=20
 [[ -z $showcounters ]] && showcounters=1
 [[ -z $octalmap ]] && octalmap=777
