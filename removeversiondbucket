@@ -76,6 +76,7 @@ function usage() {
   echo -e "\tShow counters (-s): \e[1;32mEnabled\e[0m"
   echo -e "\tShow elapsed time (-et): \e[1;31mDisabled\e[0m"
   echo -e "\tExecute after show (-sr): \e[1;32mEnabled\e[0m"
+  echo -e "\tLog output (-l): \e[1;31mDisabled\e[0m"
   echo -e "\tSwitchboard setting (-sb): \033[1m222\033[0m"
   echo -e "\t====================== Object phase ======================"
   echo -e "\tPre-Delete object list, objects: \e[1;31mDisabled\e[0m"
