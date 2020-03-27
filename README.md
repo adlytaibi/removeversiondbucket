@@ -82,7 +82,9 @@ Enable file uploads (-f,+f): Enabled
 Delete bucket (-rb,-kb): Disabled
 Throttle parallel (-g): 20
 Show counters (-s): Enabled
+Show elapsed time (-et): Disabled
 Execute after show (-sr): Enabled
+Log output (-l): Disabled
 Switchboard setting (-sb): 202
 ====================== Object phase ======================
 Pre-Delete object list, objects: Disabled
@@ -161,7 +163,9 @@ Enable file uploads (-f,+f): Disabled
 Delete bucket (-rb,-kb): Disabled
 Throttle parallel (-g): 20
 Show counters (-s): Enabled
+Show elapsed time (-et): Disabled
 Execute after show (-sr): Enabled
+Log output (-l): Disabled
 Switchboard setting (-sb): 400
 ====================== Object phase ======================
 Pre-Delete object list, objects: Enabled
@@ -209,6 +213,7 @@ Usage
      [[-g|--governor]=VALUE] [-s|--hidecounters]
      [-r|--showonly] [-sr|--showrun] [-et|--elapsedtime]
      [[-sb|--switchboard]=VALUE]
+     [[-l|--log] [[-ld|--logdir]=VALUE]]
    
    
    DESCRIPTION
@@ -225,13 +230,15 @@ Usage
        Number of versions per file.
    
      -v, --suspendversioning, +v, --enableversioning    (default: Enabled)
-       Enable or suspend versioning on the bucket.
+       Enable or suspend versioning on the bucket. These are mutually exclusive options.
    
      -f, --disablefileuploads, +f, --enablefileuploads  (default: Enabled)
-       Create and update (PUT) files.
+       Create and update (PUT) files. These are mutually exclusive options.
+       These are mutually exclusive options.
    
      -rb, --removebucket, -kb, --keepbucket  (default: Delete bucket)
        Keep or delete the bucket. This delete command will fail if the bucket is not empty.
+       These are mutually exclusive options.
    
      -g=VALUE, --governor=VALUE  (default: 20)
        Throttle the number of parallel PUT or DELETE operations. Set to 0 for unlimited.
@@ -243,10 +250,12 @@ Usage
      -r, --showonly
        This option will only show the parameters and not execute the program.
        This is a great way to check the parameters before launching what could be sometimes a long running operations.
+       This option is mutually exclusive with --showrun.
    
      -sr, --showrun
        This option will show the parameters and execute the program.
-
+       This option is mutually exclusive with --showonly.
+   
      -et, --elapsedtime
        This option will show the elapsed time for operations in format of HH:MM:SS (don't do days).
    
@@ -274,6 +283,13 @@ Usage
          3- Performing the delete operations and post-delete list for File versions and Delete markers phases only,
            the Object phase would score a 0 and the other two phases would score a 3 each, so the switchboard option value would be 033.
    
+     -l, --log  (default: Disabled)
+       Enable logging to a file(s) with a format of BucketName_YearMonthDayHourMinute.
+   
+     --log, -ld==VALUE, --logdir==VALUE  (default: Randomly generated)
+       Optional parameter. When logging is enabled, the log directory is created under your temporary directory.
+       Unless otherwise specified here. A path can be relative to your location or full path.
+   
    EXAMPLES
      The following command will show the parameters then executes:
    
@@ -290,6 +306,7 @@ Usage
      Show counters (-s): Enabled
      Show elapsed time (-et): Disabled
      Execute after show (-sr): Enabled
+     Log output (-l): Disabled
      Switchboard setting (-sb): 222
      ====================== Object phase ======================
      Pre-Delete object list, objects: Disabled

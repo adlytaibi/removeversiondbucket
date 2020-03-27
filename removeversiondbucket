@@ -22,19 +22,22 @@ function usage() {
   echo -e "\n\t\033[1m-d=\033[0mVALUE, \033[1m--numvers=\033[0mVALUE\t(\033[1mdefault:\033[0m 2) "
   echo -e "\t\tNumber of versions per file."
   echo -e "\n\t\033[1m-v\033[0m, \033[1m--suspendversioning\033[0m, \033[1m+v\033[0m, \033[1m--enableversioning\033[0m\t\033[1m\033[0m\t(\033[1mdefault:\033[0m Enabled)"
-  echo -e "\t\tEnable or suspend versioning on the bucket."
+  echo -e "\t\tEnable or suspend versioning on the bucket. These are mutually exclusive options."
   echo -e "\n\t\033[1m-f\033[0m, \033[1m--disablefileuploads\033[0m, \033[1m+f\033[0m, \033[1m--enablefileuploads\033[0m\t(\033[1mdefault:\033[0m Enabled)"
-  echo -e "\t\tCreate and update (PUT) files."
+  echo -e "\t\tCreate and update (PUT) files. These are mutually exclusive options."
+  echo -e "\t\tThese are mutually exclusive options."
   echo -e "\n\t\033[1m-rb\033[0m, \033[1m--removebucket\033[0m, \033[1m-kb\033[0m, \033[1m--keepbucket\033[0m\t(\033[1mdefault:\033[0m Delete bucket)"
-  echo -e "\t\tKeep or delete the bucket. This delete command will fail if the bucket is not empty."
+  echo -e "\t\tKeep or delete the bucket. This delete command will fail if the bucket is not empty.\n\t\tThese are mutually exclusive options."
   echo -e "\n\t\033[1m-g\033[0m=VALUE, \033[1m--governor\033[0m=VALUE\t(\033[1mdefault:\033[0m 20)"
   echo -e "\t\tThrottle the number of parallel PUT or DELETE operations. Set to 0 for unlimited.\n\t\tSet this a value you're comfortable with depending how powerful your machine is."
   echo -e "\n\t\033[1m-s\033[0m, \033[1m--hidecounters\033[0m\t(\033[1mdefault:\033[0m Disabled)"
   echo -e "\t\tSet this switch to hide counters from being printed. Counters are shown by default."
   echo -e "\n\t\033[1m-r\033[0m, \033[1m--showonly\033[0m"
   echo -e "\t\tThis option will only show the parameters and not execute the program.\n\t\tThis is a great way to check the parameters before launching what could be sometimes a long running operations."
+  echo -e "\t\tThis option is mutually exclusive with \033[1m--showrun\033[0m."
   echo -e "\n\t\033[1m-sr\033[0m, \033[1m--showrun\033[0m"
   echo -e "\t\tThis option will show the parameters and execute the program."
+  echo -e "\t\tThis option is mutually exclusive with \033[1m--showonly\033[0m."
   echo -e "\n\t\033[1m-et\033[0m, \033[1m--elapsedtime\033[0m"
   echo -e "\t\tThis option will show the elapsed time for operations in format of HH:MM:SS (don't do days)."
   echo -e "\n\t\033[1m-sb\033[0m=VALUE, \033[1m--switchboard\033[0m=VALUE\t(\033[1mdefault:\033[0m 777)"
@@ -54,6 +57,11 @@ function usage() {
   echo -e "\t\t\t1- Enabling all options for all phases would the addition of 4,2,1 which adds up to 7,7,7 put together would form a \033[1mswitchboard\033[0m option of \033[1m777\033[0m."
   echo -e "\n\t\t\t2- Enabling only pre-delete listing for all phases is a 4 for each phase and put together forms a \033[1mswitchboard\033[0m option of \033[1m444\033[0m."
   echo -e "\n\t\t\t3- Performing the delete operations and post-delete list for \033[1mFile versions\033[0m and \033[1mDelete markers\033[0m phases only,\n\t\t\t  the \033[1mObject\033[0m phase would score a \033[1m0\033[0m and the other two phases would score a \033[1m3\033[0m each, so the \033[1mswitchboard\033[0m option value would be \033[1m033\033[0m."
+  echo -e "\n\t\033[1m-l\033[0m, \033[1m--log\033[0m\t(\033[1mdefault:\033[0m Disabled)"
+  echo -e "\t\tEnable logging to a file(s) with a format of BucketName_YearMonthDayHourMinute."
+  echo -e "\n\t\033[1m--log\033[0m, \033[1m-ld=\033[0m=VALUE, \033[1m--logdir=\033[0m=VALUE\t(\033[1mdefault:\033[0m Randomly generated)"
+  echo -e "\t\tOptional parameter. When logging is enabled, the log directory is created under your temporary directory."
+  echo -e "\t\tUnless otherwise specified here. A path can be relative to your location or full path."
   echo -e "\n\033[1mEXAMPLES\033[0m"
   echo -e "\tThe following command will show the parameters then executes:"
   echo -e "\n\t\$ $(basename $0) \033[1m-sr\033[0m \033[1m-a=\033[0m\"--endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem\" \033[1m-b=\033[0mmybucket \033[1m-c=\033[0m5000 \033[1m-d=\033[0m5 \033[1m-kb \033[1m-g=\033[0m30 \033[1m-sb=\033[0m222 \033[1m-rb\033[0m"
@@ -92,42 +100,8 @@ function usage() {
 
 # Mini help message
 function shortusage() {
-  echo -e "\t\033[1m$(basename $0)\033[0m [\033[1m-h\033[0m|\033[1m--help\033[0m]\n\t[[\033[1m-a\033[0m|\033[1m--awscliopts\033[0m]="OPTIONS"] [[\033[1m-b\033[0m|\033[1m--bucket\033[0m]=NAME] [[\033[1m-c\033[0m|\033[1m--numfiles\033[0m]=VALUE] [[\033[1m-d\033[0m|\033[1m--numvers\033[0m]=VALUE]\n\t[[\033[1m-v\033[0m|\033[1m--suspendversioning\033[0m] | [\033[1m+v\033[0m|\033[1m--enableversioning\033[0m]]\n\t[[\033[1m-f\033[0m|\033[1m--disablefileuploads\033[0m] | [\033[1m+f\033[0m|\033[1m--enablefileuploads\033[0m]]\n\t[[\033[1m-rb\033[0m|\033[1m--removebucket\033[0m] | [\033[1m-kb\033[0m|\033[1m--keepbucket\033[0m]]\n\t[[\033[1m-g\033[0m|\033[1m--governor\033[0m]=VALUE] [\033[1m-s\033[0m|\033[1m--hidecounters\033[0m]\n\t[\033[1m-r\033[0m|\033[1m--showonly\033[0m] [\033[1m-sr\033[0m|\033[1m--showrun\033[0m] [\033[1m-et\033[0m|\033[1m--elapsedtime\033[0m]\n\t[[\033[1m-sb\033[0m|\033[1m--switchboard\033[0m]=VALUE]\n"
+  echo -e "\t\033[1m$(basename $0)\033[0m [\033[1m-h\033[0m|\033[1m--help\033[0m]\n\t[[\033[1m-a\033[0m|\033[1m--awscliopts\033[0m]="OPTIONS"] [[\033[1m-b\033[0m|\033[1m--bucket\033[0m]=NAME] [[\033[1m-c\033[0m|\033[1m--numfiles\033[0m]=VALUE] [[\033[1m-d\033[0m|\033[1m--numvers\033[0m]=VALUE]\n\t[[\033[1m-v\033[0m|\033[1m--suspendversioning\033[0m] | [\033[1m+v\033[0m|\033[1m--enableversioning\033[0m]]\n\t[[\033[1m-f\033[0m|\033[1m--disablefileuploads\033[0m] | [\033[1m+f\033[0m|\033[1m--enablefileuploads\033[0m]]\n\t[[\033[1m-rb\033[0m|\033[1m--removebucket\033[0m] | [\033[1m-kb\033[0m|\033[1m--keepbucket\033[0m]]\n\t[[\033[1m-g\033[0m|\033[1m--governor\033[0m]=VALUE] [\033[1m-s\033[0m|\033[1m--hidecounters\033[0m]\n\t[\033[1m-r\033[0m|\033[1m--showonly\033[0m] [\033[1m-sr\033[0m|\033[1m--showrun\033[0m] [\033[1m-et\033[0m|\033[1m--elapsedtime\033[0m]\n\t[[\033[1m-sb\033[0m|\033[1m--switchboard\033[0m]=VALUE]\n\t[[\033[1m-l\033[0m|\033[1m--log\033[0m] [[\033[1m-ld\033[0m|\033[1m--logdir\033[0m]=VALUE]]\n"
 }
-
-function truefalse() {
-  if [[ $1 == 1 ]];then
-    echo -e "\e[1;32mEnabled\e[0m"
-  else
-    echo -e "\e[1;31mDisabled\e[0m"
-  fi
-}
-
-# Read arguments if any
-while [[ ! -z $1 ]]
-do
-  case $1 in
-    -a=*|--awscliopts=*) a=${1#*=} ;;
-    -b=*|--bucket=*) b=${1#*=} ;;
-    -c=*|--numfiles=*) c=${1#*=} ;;
-    -d=*|--numvers=*) d=${1#*=} ;;
-    -v|--suspendversioning) enableversioning=0 ;;
-    +v|--enableversioning) enableversioning=1 ;;
-    -f|--disablefileuploads) enablefileuploads=0 ;;
-    +f|--enablefileuploads) enablefileuploads=1 ;;
-    -kb|--keepbucket) removebucket=0 ;;
-    -rb|--removebucket) removebucket=1 ;;
-    -g=*|--governor=*) governor=${1#*=} ;;
-    -s|--hidecounters) showcounters=0 ;;
-    -r|--showonly) showonly=1 ;;
-    -sr|--showrun) showrun=1 ;;
-    -et|--elapsedtime) elapsedtime=1 ;;
-    -sb=*|--switchboard=*) octalmap=${1#*=} ;;
-    -h|--help) usage ;;
-    *) echo "\"${1%=*}\" is an invalid options"; shortusage; exit 1 ;;
-  esac
-  shift
-done
 
 # Random name generation
 l="$(sed 's/ //g' <<< $(echo {a..z} {0..9}))"
@@ -138,18 +112,71 @@ do
   bucket+=${l:$r:1}
 done
 
+# Initial settings
+enableversioning=2
+suspendversioning=2
+enablefileuploads=2
+disablefileuploads=2
+removebucket=2
+keepbucket=2
+showonly=2
+showrun=2
+
+# Read arguments if any
+while [[ ! -z $1 ]]
+do
+  case $1 in
+    -a=*|--awscliopts=*) a=${1#*=} ;;
+    -b=*|--bucket=*) b=${1#*=} ;;
+    -c=*|--numfiles=*) c=${1#*=} ;;
+    -d=*|--numvers=*) d=${1#*=} ;;
+    -v|--suspendversioning) suspendversioning=1 ;;
+    +v|--enableversioning) enableversioning=1 ;;
+    -f|--disablefileuploads) disablefileuploads=1 ;;
+    +f|--enablefileuploads) enablefileuploads=1 ;;
+    -kb|--keepbucket) keepbucket=1 ;;
+    -rb|--removebucket) removebucket=1 ;;
+    -g=*|--governor=*) governor=${1#*=} ;;
+    -s|--hidecounters) showcounters=0 ;;
+    -r|--showonly) showonly=1 ;;
+    -sr|--showrun) showrun=1 ;;
+    -et|--elapsedtime) elapsedtime=1 ;;
+    -sb=*|--switchboard=*) octalmap=${1#*=} ;;
+    -l|--log) log=1 ;;
+    -ld=*|--logdir=*) logdir=${1#*=} ;;
+    -h|--help) usage ;;
+    *) echo "\"${1%=*}\" is an invalid options"; shortusage; exit 1 ;;
+  esac
+  shift
+done
+
 # Default settings
 [[ -z $a ]] && a='--endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem'
 [[ -z $b ]] && b=$bucket
 [[ -z $c ]] && c=100
 [[ -z $d ]] && d=2
-[[ -z $enableversioning ]] && enableversioning=1
-[[ -z $enablefileuploads ]] && enablefileuploads=1
-[[ -z $removebucket ]] && removebucket=1
+[[ $enableversioning == 2 && $suspendversioning == 2 ]] && { enableversioning=1; suspendversioning=0; }
+[[ $enablefileuploads == 2 && $disablefileuploads == 2 ]] && { enablefileuploads=1; disablefileuploads=0; }
+[[ $removebucket == 2 && $keepbucket == 2 ]] && { removebucket=1; keepbucket=0; }
+[[ $showonly == 2 && $showrun == 2 ]] && { showonly=0; showrun=0; }
 [[ -z $governor ]] && governor=20
 [[ -z $showcounters ]] && showcounters=1
 [[ -z $octalmap ]] && octalmap=777
 [[ -z $elapsedtime ]] && elapsedtime=0
+[[ -z $log ]] && log=0
+[[ $log == 0 && ! -z $logdir ]] && { echo "Need to enable \"log\" before using \"logdir\"."; shortusage; exit 1; }
+if [[ $log == 1 ]];then
+  if [[ -z $logdir ]];then
+    if [[ $showonly == 1 ]];then
+      logdir="assigned on run"
+    else
+      logdir=$(mktemp -d -t rvb-XXXXXXXX)
+    fi
+  else
+    [[ ! -d $logdir ]] && { $(mkdir $logdir) || { echo "Unable to create directory \"$logdir\", exiting."; exit 1; } }
+    [[ -w $logdir ]] || { echo "Directory \"$logdir\" is not writable, exiting."; exit 1; }
+  fi
+fi
 l=$(printf '%09d' $(bc <<< "ibase=8;obase=2;$octalmap"))
 prelistobjects=${l:0:1}
 deleteobjects=${l:1:1}
@@ -161,32 +188,57 @@ prelistdeletemarkers=${l:6:1}
 deletedeletemarkers=${l:7:1}
 postlistdeletemarkers=${l:8:1}
 
+# Print and/or log
+ts=$(date +%Y%m%d%H%M)
+function printlog(){
+  echo -e "$@"
+  [[ $log == 1 && $showonly == 0 ]] && sed 's/\\[03e]*\[[0-9;]*m//g'<<<"$@">>$logdir/${b}_$ts
+}
+
+function truefalse(){
+  if [[ $1 == 1 ]];then
+    echo "\e[1;32mEnabled\e[0m"
+  else
+    echo "\e[1;31mDisabled\e[0m"
+  fi
+}
+
+function mutex(){
+  [[ $1 == 1 && $2 == 1 ]] && { printlog "\"$3\" and \"$4\" are mutually exclusive options."; shortusage; exit 1; }
+}
+
 # Parameters display
+mutex $showonly $showrun "showonly" "showrun"
+mutex $suspendversioning $enableversioning "suspendversioning" "enableversioning"
+mutex	$disablefileuploads $enablefileuploads "disablefileuploads" "enablefileuploads"
+mutex $removebucket $keepbucket "removebucket" "keepbucket"
 if [[ $showonly == 1 || $showrun == 1 ]]; then
-  echo -e "aws cli extra options (-a): \033[1maws $a\033[0m"
-  echo -e "Bucket name (-b): \033[1m$b\033[0m"
-  echo -e "Number of files to create (-c): \033[1m$c\033[0m"
-  echo -e "Number of versions per file to create (-d): \033[1m$d\033[0m"
-  echo -e "Enable versioning (-v,+v): $(truefalse $enableversioning)"
-  echo -e "Enable file uploads (-f,+f): $(truefalse $enablefileuploads)"
-  echo -e "Delete bucket (-rb,-kb): $(truefalse $removebucket)"
-  echo -e "Throttle parallel (-g): \033[1m$governor\033[0m"
-  echo -e "Show counters (-s): $(truefalse $showcounters)"
-  echo -e "Show elapsed time (-et): $(truefalse $elapsedtime)"
-  echo -e "Execute after show (-sr): $(truefalse $showrun)"
-  echo -e "Switchboard setting (-sb): \033[1m$octalmap\033[0m"
-  echo -e "$(printf '=%.0s' {1..22}) Object phase $(printf '=%.0s' {1..22})"
-  echo -e "Pre-Delete object list, objects: $(truefalse $prelistobjects)"
-  echo -e "   DELETE all objects: $(truefalse $deleteobjects)"
-  echo -e "Post Delete object, list objects: $(truefalse $postlistobjects)"
-  echo -e "$(printf '=%.0s' {1..18}) File versions phase $(printf '=%.0s' {1..18})"
-  echo -e "Pre-Delete file versions, list versions: $(truefalse $prelistversions)"
-  echo -e "   DELETE all files' versions: $(truefalse $deleteversions)"
-  echo -e "Post Delete file versions, list versions:: $(truefalse $postlistversions)"
-  echo -e "$(printf '=%.0s' {1..18}) Delete markers phase $(printf '=%.0s' {1..18})"
-  echo -e "Pre-Delete delete markers, list delete markers: $(truefalse $prelistdeletemarkers)"
-  echo -e "   DELETE all delete markers: $(truefalse $deletedeletemarkers)"
-  echo -e "Post Delete delete markers, list delete markers: $(truefalse $postlistdeletemarkers)"
+  printlog "aws cli extra options (-a): \033[1maws $a\033[0m"
+  printlog "Bucket name (-b): \033[1m$b\033[0m"
+  printlog "Number of files to create (-c): \033[1m$c\033[0m"
+  printlog "Number of versions per file to create (-d): \033[1m$d\033[0m"
+  printlog "Enable versioning (-v,+v): $(truefalse $enableversioning)"
+  printlog "Enable file uploads (-f,+f): $(truefalse $enablefileuploads)"
+  printlog "Delete bucket (-rb,-kb): $(truefalse $removebucket)"
+  printlog "Throttle parallel (-g): \033[1m$governor\033[0m"
+  printlog "Show counters (-s): $(truefalse $showcounters)"
+  printlog "Show elapsed time (-et): $(truefalse $elapsedtime)"
+  printlog "Execute after show (-sr): $(truefalse $showrun)"
+  printlog "Log output (-l): $(truefalse $log)"
+  [[ $log == 1 ]] && printlog "Log output directory (-ld): \033[1m$logdir\033[0m"
+  printlog "Switchboard setting (-sb): \033[1m$octalmap\033[0m"
+  printlog "$(printf '=%.0s' {1..22}) Object phase $(printf '=%.0s' {1..22})"
+  printlog "Pre-Delete object list, objects: $(truefalse $prelistobjects)"
+  printlog "   DELETE all objects: $(truefalse $deleteobjects)"
+  printlog "Post Delete object, list objects: $(truefalse $postlistobjects)"
+  printlog "$(printf '=%.0s' {1..18}) File versions phase $(printf '=%.0s' {1..18})"
+  printlog "Pre-Delete file versions, list versions: $(truefalse $prelistversions)"
+  printlog "   DELETE all files' versions: $(truefalse $deleteversions)"
+  printlog "Post Delete file versions, list versions:: $(truefalse $postlistversions)"
+  printlog "$(printf '=%.0s' {1..18}) Delete markers phase $(printf '=%.0s' {1..18})"
+  printlog "Pre-Delete delete markers, list delete markers: $(truefalse $prelistdeletemarkers)"
+  printlog "   DELETE all delete markers: $(truefalse $deletedeletemarkers)"
+  printlog "Post Delete delete markers, list delete markers: $(truefalse $postlistdeletemarkers)"
   [[ $showrun == 1 ]] || exit 0
 fi
 
@@ -205,7 +257,7 @@ function title(){
     POST) p=$postpad;;
     *) p=$pad;;
   esac
-  echo -e "\033[01;32m$p $@ $p\033[0m"
+  printlog "\033[01;32m$p $@ $p\033[0m"
 }
 
 # Throttle function
@@ -214,18 +266,18 @@ function throttle(){
   if [[ $OSTYPE == "linux-gnu" || $OSTYPE == "darwin"* ]];then d=2; else d=1;fi
   nproc=$(awk '$1==p {c++} END{print int(c/d)}' p=$mypid d=$d< <(ps -eoppid))
   if [[ $nproc -gt $governor ]]; then
-    echo -e "\033[1;33mthrottling ($governor)...\033[0m"
+    printlog "\033[1;33mthrottling ($governor)...\033[0m"
     wait 
   fi
 }
 
-#Elapsed time
+# Elapsed time
 function etime(){
   dt=$(($2-$1))
   hours=$(printf "%02d" $(($dt/3600)))
   minutes=$(printf "%02d" $(($dt%3600/60)))
   secs=$(printf "%02d" $(($dt%60)))
-  echo -e "Elapsed time: \033[1;33m${hours}:${minutes}:${secs}\033[0m"
+  printlog "Elapsed time: \033[1;33m${hours}:${minutes}:${secs}\033[0m"
 }
 
 # Check for the bucket
@@ -233,25 +285,25 @@ title "Check for bucket \"$b\""
 bhead=$($a s3api head-bucket --bucket $b 2>&1)
 rcode=$?
 scode=$(sed -n 's/[^0-9]*\([0-9]\{3\}\).*/\1/p'<<<$bhead)
-[[ -z $scode ]] && { echo "Bucket \"$b\" already exists."; bucket=yes; }
+[[ -z $scode ]] && { printlog "Bucket \"$b\" already exists."; bucket=yes; }
 case $scode in
   404)
-    echo "Bucket named \"$b\" is available"
+    printlog "Bucket named \"$b\" is available"
     newbuck=yes
     ;;
   403)
-    echo "Bucket named \"$b\" is unavailable or verify your credentials."
+    printlog "Bucket named \"$b\" is unavailable or verify your credentials."
     exit 1
     ;;
   *)
-    [[ $rcode == 0 ]] || { echo "Maybe a problem with endpoint URL."; exit 1;}
+    [[ $rcode == 0 ]] || { printlog "Maybe a problem with endpoint URL."; exit 1;}
     ;;
 esac
 
 # Create the bucket
 if [[ ! -z $newbuck ]];then
   title "Creating bucket \"$b\""
-  $a s3 mb s3://$b
+  printlog "$($a s3 mb s3://$b)"
   if [[ $? == 0 ]]; then bucket=yes;fi
 fi
 
@@ -259,12 +311,12 @@ if [[ ! -z $bucket ]];then
   # Check bucket versioning
   title "Check versioning on bucket \"$b\""
   v=$($a s3api get-bucket-versioning --bucket $b)
-  [[ $? == 0 ]] || { echo "Cannot proceed, exiting"; exit 1;}
+  [[ $? == 0 ]] || { printlog "Cannot proceed, exiting"; exit 1;}
   versiond=$(jq -r '.Status'<<<$v)
   if [[ -z $versiond ]];then
-    echo "Not version-enabled."
+    printlog "Not version-enabled."
   else
-    echo $versiond
+    printlog $versiond
   fi
   # Enable versioning on bucket
   if [[ $enableversioning == 1 ]];then
@@ -290,13 +342,13 @@ if [[ ! -z $bucket ]];then
     if [[ $enableversioning == 0 ]];then d=1;fi
     title "Creating $c files and $d version(s)"
     tdir=$(mktemp -d)
-    [[ $? == 0 ]] || { echo "Unable to create a temporary directory, exiting"; exit 1;}
+    [[ $? == 0 ]] || { printlog "Unable to create a temporary directory, exiting"; exit 1;}
     t1=$(date +%s)
     for ((i=1;i<=$c;i++));do
       for ((j=1;j<=$d;j++));do
         date > $tdir/test$i
         [[ $showcounters == 1 ]] && dcnt="file $i/$c version $j/$d"
-        $a s3api put-object --bucket $b --key vers/test$i --body $tdir/test$i|jq -r --arg dcnt "$dcnt" '.|"\(.VersionId) \($dcnt)"' &
+        printlog "$($a s3api put-object --bucket $b --key vers/test$i --body $tdir/test$i|jq -r --arg dcnt "$dcnt" '.|"\(.VersionId) \($dcnt)"')" &
         throttle
       done
     done
@@ -305,12 +357,12 @@ if [[ ! -z $bucket ]];then
     # Remove the test files
     title "Cleaning up local files"
     rm -r $tdir
-    [[ $? == 0 ]] || { echo "Unable to clean up the temporary directory."; }
+    [[ $? == 0 ]] || { printlog "Unable to clean up the temporary directory."; }
   fi
 
   if [[ $prelistobjects == 1 ]];then
     title PRE "List of objects"
-    $a s3api list-objects --bucket $b|jq -r '.Contents[].Key'
+    printlog "$($a s3api list-objects --bucket $b|jq -r '.Contents[].Key')"
   fi
 
   # Delete all Objects
@@ -323,8 +375,7 @@ if [[ ! -z $bucket ]];then
     t1=$(date +%s)
     for i in $objects;do
       [[ $showcounters == 1 ]] && dcnt="Object $((cnt++))/$tot"
-      #[[ $enableversioning == 0 ]] && echo
-      $a s3api delete-object --bucket $b --key $i|jq -r --arg dcnt "$dcnt" '.|"\(.VersionId) \($dcnt)"' &
+      printlog "$($a s3api delete-object --bucket $b --key $i|jq -r --arg dcnt "$dcnt" '.|"\(.VersionId) \($dcnt)"')" &
       throttle
     done
     wait
@@ -333,7 +384,7 @@ if [[ ! -z $bucket ]];then
 
   if [[ $postlistobjects == 1 ]];then
     title POST "List of objects"
-    $a s3api list-objects --bucket $b
+    printlog "$($a s3api list-objects --bucket $b)"
   fi
 
   if [[ $prelistversions == 1 ]];then
@@ -341,7 +392,7 @@ if [[ ! -z $bucket ]];then
     listversions=$($a s3api list-object-versions --bucket $b)
     versions=$(jq -r '.Versions[]?'<<<$listversions)
     tot=$(jq -r '.Versions|length'<<<$listversions)
-    jq -r '.|"\(.Key) version-id \(.VersionId)"'<<< $versions
+    printlog "$(jq -r '.|"\(.Key) version-id \(.VersionId)"'<<< $versions)"
   fi
 
   # Delete all files' versions
@@ -357,7 +408,7 @@ if [[ ! -z $bucket ]];then
       t1=$(date +%s)
       while read i;do
         [[ $showcounters == 1 ]] && dcnt="Version $((cnt++))/$tot"
-        $a s3api delete-object --bucket $b $i|jq -r --arg dcnt "$dcnt" '.|"\(.VersionId) \($dcnt)"' &
+        printlog "$($a s3api delete-object --bucket $b $i|jq -r --arg dcnt "$dcnt" '.|"\(.VersionId) \($dcnt)"')" &
         throttle
       done< <($a s3api list-object-versions --bucket $b|jq -r '.Versions[]?|"--key \(.Key) --version-id \(.VersionId)"')
       wait
@@ -368,7 +419,7 @@ if [[ ! -z $bucket ]];then
   if [[ $postlistversions == 1 ]];then
     title POST "List of file versions"
     versions=$($a s3api list-object-versions --bucket $b)
-    jq -r '.Versions'<<< $versions
+    printlog "$(jq -r '.Versions'<<< $versions)"
   fi
 
   if [[ $prelistdeletemarkers == 1 ]];then
@@ -376,7 +427,7 @@ if [[ ! -z $bucket ]];then
     listdmarkers=$($a s3api list-object-versions --bucket $b)
     dmarkers=$(jq -r '.DeleteMarkers[]?'<<<$listdmarkers)
     tot=$(jq -r '.DeleteMarkers|length'<<<$listdmarkers)
-    jq -r '.|"\(.Key) version-id \(.VersionId)"'<<< $dmarkers
+    printlog "$(jq -r '.|"\(.Key) version-id \(.VersionId)"'<<< $dmarkers)"
   fi
 
   # Delete all DeleteMarkers
@@ -392,7 +443,7 @@ if [[ ! -z $bucket ]];then
       t1=$(date +%s)
       while read i;do
         [[ $showcounters == 1 ]] && dcnt="Delete Marker $((cnt++))/$tot"
-        $a s3api delete-object --bucket $b $i|jq -r --arg dcnt "$dcnt" '.|"\(.VersionId) \($dcnt)"' &
+        printlog "$($a s3api delete-object --bucket $b $i|jq -r --arg dcnt "$dcnt" '.|"\(.VersionId) \($dcnt)"')" &
         throttle
       done< <($a s3api list-object-versions --bucket $b|jq -r '.DeleteMarkers[]?|"--key \(.Key) --version-id \(.VersionId)"')
       wait
@@ -403,14 +454,14 @@ if [[ ! -z $bucket ]];then
   if [[ $postlistdeletemarkers == 1 ]];then
     title POST "List of delete markers"
     dmarkers=$($a s3api list-object-versions --bucket $b)
-    jq -r '.DeleteMarkers'<<< $dmarkers
+    printlog "$(jq -r '.DeleteMarkers'<<< $dmarkers)"
   fi
 
   # Remove bucket
   if [[ $removebucket == 1 ]];then
     title "Removing bucket \"$b\""
     t1=$(date +%s)
-    $a s3 rb s3://$b
+    printlog "$($a s3 rb s3://$b)"
     [[ $elapsedtime == 1 ]] && etime $t1 $(date +%s)
   fi
 fi
