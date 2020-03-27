@@ -59,7 +59,7 @@ function usage() {
   echo -e "\n\t\t\t3- Performing the delete operations and post-delete list for \033[1mFile versions\033[0m and \033[1mDelete markers\033[0m phases only,\n\t\t\t  the \033[1mObject\033[0m phase would score a \033[1m0\033[0m and the other two phases would score a \033[1m3\033[0m each, so the \033[1mswitchboard\033[0m option value would be \033[1m033\033[0m."
   echo -e "\n\t\033[1m-l\033[0m, \033[1m--log\033[0m\t(\033[1mdefault:\033[0m Disabled)"
   echo -e "\t\tEnable logging to file with a format of BucketName_YearMonthDayHourMinute."
-  echo -e "\t\tIf \033[1m--logdir=\033[0m= is not set, a randomly named directory is created under your temporary directory."
+  echo -e "\t\tIf \033[1m--logdir=\033[0m= is not set, a randomly named directory is created under your temporary directory with \033[1mrbv\033[0m prefix."
   echo -e "\n\t\033[1m-ld=\033[0m=VALUE, \033[1m--logdir=\033[0m=VALUE\t(\033[1mdefault:\033[0m Randomly generated)"
   echo -e "\t\tOptional parameter, when a log directory is provided options \"\033[1m--log\033[0m\" is assumed enabled."
   echo -e "\t\tA path can be relative to your location or full path."

@@ -285,7 +285,7 @@ Usage
    
      -l, --log  (default: Disabled)
        Enable logging to file with a format of BucketName_YearMonthDayHourMinute.
-       If --logdir== is not set, a randomly named directory is created under your temporary directory.
+       If --logdir== is not set, a randomly named directory is created under your temporary directory with rbv prefix.
    
      -ld==VALUE, --logdir==VALUE  (default: Randomly generated)
        Optional parameter, when a log directory is provided options "--log" is assumed enabled.
