@@ -213,7 +213,7 @@ Usage
      [[-g|--governor]=VALUE] [-s|--hidecounters]
      [-r|--showonly] [-sr|--showrun] [-et|--elapsedtime]
      [[-sb|--switchboard]=VALUE]
-     [[-l|--log] [[-ld|--logdir]=VALUE]]
+     [-l|--log] [[-ld|--logdir]=VALUE]
    
    
    DESCRIPTION
@@ -284,11 +284,13 @@ Usage
            the Object phase would score a 0 and the other two phases would score a 3 each, so the switchboard option value would be 033.
    
      -l, --log  (default: Disabled)
-       Enable logging to a file(s) with a format of BucketName_YearMonthDayHourMinute.
+       Enable logging to file with a format of BucketName_YearMonthDayHourMinute.
+       If --logdir== is not set, a randomly named directory is created under your temporary directory.
    
-     --log, -ld==VALUE, --logdir==VALUE  (default: Randomly generated)
-       Optional parameter. When logging is enabled, the log directory is created under your temporary directory.
-       Unless otherwise specified here. A path can be relative to your location or full path.
+     -ld==VALUE, --logdir==VALUE  (default: Randomly generated)
+       Optional parameter, when a log directory is provided options "--log" is assumed enabled.
+       A path can be relative to your location or full path.
+   
    
    EXAMPLES
      The following command will show the parameters then executes:
