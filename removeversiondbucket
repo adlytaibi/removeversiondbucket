@@ -237,15 +237,15 @@ if [[ $showonly == 1 || $showrun == 1 ]]; then
   printlog "Log output (-l): $(truefalse $log)"
   [[ $log == 1 ]] && printlog "Log output directory (-ld): \033[1m$logdir\033[0m"
   printlog "Switchboard setting (-sb): \033[1m$octalmap\033[0m"
-  printlog "$(printf '=%.0s' {1..22}) Object phase $(printf '=%.0s' {1..22})"
+  printlog "$(printf '=%.0s' {1..32})  \033[1mObject phase\033[0m  $(printf '=%.0s' {1..31})"
   printlog "Pre-Delete object list, objects: $(truefalse $prelistobjects)"
   printlog "   DELETE all objects: $(truefalse $deleteobjects)"
   printlog "Post Delete object, list objects: $(truefalse $postlistobjects)"
-  printlog "$(printf '=%.0s' {1..18}) File versions phase $(printf '=%.0s' {1..18})"
+  printlog "$(printf '=%.0s' {1..28})  \033[1mFile versions phase\033[0m  $(printf '=%.0s' {1..28})"
   printlog "Pre-Delete file versions, list versions: $(truefalse $prelistversions)"
   printlog "   DELETE all files' versions: $(truefalse $deleteversions)"
   printlog "Post Delete file versions, list versions:: $(truefalse $postlistversions)"
-  printlog "$(printf '=%.0s' {1..18}) Delete markers phase $(printf '=%.0s' {1..18})"
+  printlog "$(printf '=%.0s' {1..28})  \033[1mDelete markers phase\033[0m  $(printf '=%.0s' {1..27})"
   printlog "Pre-Delete delete markers, list delete markers: $(truefalse $prelistdeletemarkers)"
   printlog "   DELETE all delete markers: $(truefalse $deletedeletemarkers)"
   printlog "Post Delete delete markers, list delete markers: $(truefalse $postlistdeletemarkers)"
@@ -254,20 +254,23 @@ fi
 
 # Various vars
 a="aws $a"
-width=$(tput cols)
-prepad=$(printf '.%.0s' {1..10})
-pad=$(printf '#%.0s' {1..10})
-postpad=$(printf '+%.0s' {1..10})
+width=77
 mypid=$$
 
 # Pretty titles function
 function title(){
+  side=$(((width-2-${#1}-${#2})/2))
+  prepad=$(printf '.%.0s' $(eval echo {1..$side}))
+  pad=$(printf '#%.0s' $(eval echo {1..$side}))
+  postpad=$(printf '+%.0s' $(eval echo {1..$side}))
   case $1 in
-    PRE) p=$prepad;;
-    POST) p=$postpad;;
-    *) p=$pad;;
+    PRE) p=$prepad; prepos=1;;
+    POST) p=$postpad; prepos=1;;
+    *) p=$pad; prepos=0;;
   esac
-  printlog "\033[01;32m$p $@ $p\033[0m"
+  scount=$((width-${#1}-${#2}-2*${#p}-$prepos))
+  correc=$(printf ' %.0s' $(eval echo {1..$scount}))
+  printlog "\033[01;32m$p  $@$correc$p\033[0m"
 }
 
 # Throttle function
