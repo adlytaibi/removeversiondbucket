@@ -473,7 +473,6 @@ if [[ ! -z $bucket ]];then
     t1=$(date +%s)
     if [[ $prelistversions == 0 ]];then
       listversions=$($a s3api list-object-versions --bucket $b)
-      [[ $elapsedtime == 1 ]] && etime $t1 $(date +%s)
       versions=$(jq -r '.Versions[]?'<<<$listversions)
       tot=$(jq -r '.Versions|length'<<<$listversions)
     fi
