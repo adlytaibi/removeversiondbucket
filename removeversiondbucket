@@ -198,6 +198,11 @@ prelistdeletemarkers=${l:6:1}
 deletedeletemarkers=${l:7:1}
 postlistdeletemarkers=${l:8:1}
 
+# Validate input
+for check in $c $d $governor $octalmap; do
+  [[ $check =~ ^[0-9]+$ ]] || { echo "Wrong input \"$check\"."; exit 1; }
+done
+
 # Print and/or log
 ts=$(date +%Y%m%d%H%M)
 function printlog(){
@@ -205,28 +210,6 @@ function printlog(){
   [[ $log == 1 && $showonly == 0 ]] && sed 's/\\[03e]*\[[0-9;]*m//g;s/\\//'<<<"$@">>$logdir/${b}_$ts
 }
 
-#function foldcmdtowidth(){
-# Adly's own fold command to width
-#  function sfind(){
-#    s=$@; f=${s##* }; p=$((${#s}-${#f}))
-#    [[ $p -ge 0 ]] && echo ${s:0:$p}
-#  }
-#  col=$1; cmd=$2; s=$cmd; cmdlen=${#cmd}
-#  while ((${#s}>$col)); do
-#    s=$(sfind $s)
-#    if ((${#s}<$col));then
-#      if ((${#s}==0));then
-#        s=${cmd:0:$col}
-#        printlog -e "${s}\\\\"
-#        cmd=${cmd:${#s}:$cmdlen}
-#      else
-#        printlog -e "${s} \\\\"
-#        cmd=${cmd:${#s}+1:$cmdlen}
-#      fi
-#      cmdlen=${#cmd}; s=$cmd
-#    fi
-#  done; printlog $cmd
-#}
 function foldcmdtowidth(){
 # Adly's own fold command to width
   function sfind(){
