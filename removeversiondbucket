@@ -66,7 +66,7 @@ function usage() {
   echo -e "\n\033[1mEXAMPLES\033[0m"
   echo -e "\tThe following command will show the parameters then executes:"
   echo -e "\n\t\$ $(basename $0) \033[1m-sr\033[0m \033[1m-a=\033[0m\"--endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem\" \033[1m-b=\033[0mmybucket \033[1m-c=\033[0m5000 \033[1m-d=\033[0m5 \033[1m-kb \033[1m-g=\033[0m30 \033[1m-sb=\033[0m222 \033[1m-rb\033[0m"
-  echo -e "\n\taws cli extra options (-a): \033[1maws --endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem\033[0m"
+  echo -e "\n\taws cli extra options (-a): \033[1maws --endpoint-url \\\\\n\thttps://s3.demo.netapp.com:8082 --ca chain.pem\033[0m"
   echo -e "\tBucket name (-b): \033[1mmybucket\033[0m"
   echo -e "\tNumber of files to create (-c): \033[1m5000\033[0m"
   echo -e "\tNumber of versions per file to create (-d): \033[1m5\033[0m"
@@ -79,15 +79,15 @@ function usage() {
   echo -e "\tExecute after show (-sr): \e[1;32mEnabled\e[0m"
   echo -e "\tLog output (-l): \e[1;31mDisabled\e[0m"
   echo -e "\tSwitchboard setting (-sb): \033[1m222\033[0m"
-  echo -e "\t====================== Object phase ======================"
+  echo -e "\t================================  \033[1mObject phase\033[0m  ==============================="
   echo -e "\tPre-Delete object list, objects: \e[1;31mDisabled\e[0m"
   echo -e "\t   DELETE all objects: \e[1;32mEnabled\e[0m"
   echo -e "\tPost Delete object, list objects: \e[1;31mDisabled\e[0m"
-  echo -e "\t================== File versions phase =================="
+  echo -e "\t============================  \033[1mFile versions phase\033[0m  ============================"
   echo -e "\tPre-Delete file versions, list versions: \e[1;31mDisabled\e[0m"
   echo -e "\t   DELETE all files' versions: \e[1;32mEnabled\e[0m"
   echo -e "\tPost Delete file versions, list versions:: \e[1;31mDisabled\e[0m"
-  echo -e "\t================== Delete markers phase =================="
+  echo -e "\t============================  \033[1mDelete markers phase\033[0m  ==========================="
   echo -e "\tPre-Delete delete markers, list delete markers: \e[1;31mDisabled\e[0m"
   echo -e "\t   DELETE all delete markers: \e[1;32mEnabled\e[0m"
   echo -e "\tPost Delete delete markers, list delete markers: \e[1;31mDisabled\e[0m"
@@ -202,7 +202,54 @@ postlistdeletemarkers=${l:8:1}
 ts=$(date +%Y%m%d%H%M)
 function printlog(){
   echo -e "$@"
-  [[ $log == 1 && $showonly == 0 ]] && sed 's/\\[03e]*\[[0-9;]*m//g'<<<"$@">>$logdir/${b}_$ts
+  [[ $log == 1 && $showonly == 0 ]] && sed 's/\\[03e]*\[[0-9;]*m//g;s/\\//'<<<"$@">>$logdir/${b}_$ts
+}
+
+#function foldcmdtowidth(){
+# Adly's own fold command to width
+#  function sfind(){
+#    s=$@; f=${s##* }; p=$((${#s}-${#f}))
+#    [[ $p -ge 0 ]] && echo ${s:0:$p}
+#  }
+#  col=$1; cmd=$2; s=$cmd; cmdlen=${#cmd}
+#  while ((${#s}>$col)); do
+#    s=$(sfind $s)
+#    if ((${#s}<$col));then
+#      if ((${#s}==0));then
+#        s=${cmd:0:$col}
+#        printlog -e "${s}\\\\"
+#        cmd=${cmd:${#s}:$cmdlen}
+#      else
+#        printlog -e "${s} \\\\"
+#        cmd=${cmd:${#s}+1:$cmdlen}
+#      fi
+#      cmdlen=${#cmd}; s=$cmd
+#    fi
+#  done; printlog $cmd
+#}
+function foldcmdtowidth(){
+# Adly's own fold command to width
+  function sfind(){
+    s=$@; f=${s##* }; p=$((${#s}-${#f}))
+    [[ $p -ge 0 ]] && echo ${s:0:$p}
+  }
+  col=$1; t=$2; cmd=$3; s=$cmd; cmdlen=${#cmd};
+  [[ $t == 0 ]] && bs=\\\\
+  while ((${#s}>$col)); do
+    s=$(sfind $s)
+    if ((${#s}<$col));then
+      if ((${#s}==0));then
+        s=${cmd:0:$col}
+        printlog "${s}$bs"
+        cmd=${cmd:${#s}:$cmdlen}
+      else
+        printlog "${s} $bs"
+        cmd=${cmd:${#s}+1:$cmdlen}
+      fi
+      cmdlen=${#cmd}
+      s=$cmd
+    fi
+  done; printlog $cmd
 }
 
 function truefalse(){
@@ -223,7 +270,7 @@ mutex $suspendversioning $enableversioning "suspendversioning" "enableversioning
 mutex	$disablefileuploads $enablefileuploads "disablefileuploads" "enablefileuploads"
 mutex $removebucket $keepbucket "removebucket" "keepbucket"
 if [[ $showonly == 1 || $showrun == 1 ]]; then
-  printlog "aws cli extra options (-a): \033[1maws $a\033[0m"
+  foldcmdtowidth 75 0 "aws cli extra options (-a): \033[1maws $a\033[0m"
   printlog "Bucket name (-b): \033[1m$b\033[0m"
   printlog "Number of files to create (-c): \033[1m$c\033[0m"
   printlog "Number of versions per file to create (-d): \033[1m$d\033[0m"
@@ -276,8 +323,7 @@ function title(){
 # Throttle function
 function throttle(){
   [[ $governor == 0 ]] && return
-  if [[ $OSTYPE == "darwin"* ]];then d=2; else d=1;fi
-  nproc=$(awk '$1==p {c++} END{print int(c/d)}' p=$mypid d=$d< <(ps -eoppid))
+  nproc=$(awk '$1==p {c++} END{print c}' p=$mypid< <(ps -eoppid))
   if [[ $nproc -gt $governor ]]; then
     printlog "\033[1;33mthrottling ($governor)...\033[0m"
     wait 
@@ -380,14 +426,18 @@ if [[ ! -z $bucket ]];then
   if [[ $prelistobjects == 1 ]];then
     title PRE "List of objects"
     t1=$(date +%s)
-    printlog "$($a s3api list-objects --bucket $b|jq -r '.Contents[].Key')"
+    listobjects=$($a s3api list-objects --bucket $b)
+    objects=$(jq -r '.Contents[].Key'<<<$listobjects)
+    foldcmdtowidth 75 1 "$objects"
     [[ $elapsedtime == 1 ]] && etime $t1 $(date +%s)
   fi
 
   # Delete all Objects
   if [[ $deleteobjects == 1 ]];then
-    listobjects=$($a s3api list-objects --bucket $b)
-    objects=$(jq -r '.Contents[].Key'<<<$listobjects)
+    if [[ $prelistobjects == 0 ]];then
+      listobjects=$($a s3api list-objects --bucket $b)
+      objects=$(jq -r '.Contents[].Key'<<<$listobjects)
+    fi
     tot=$(jq -r '.Contents|length'<<<$listobjects)
     cnt=1
     title "Deleting all $tot files in bucket \"$b\""
@@ -420,8 +470,8 @@ if [[ ! -z $bucket ]];then
 
   # Delete all files' versions
   if [[ $deleteversions == 1 ]];then
+    t1=$(date +%s)
     if [[ $prelistversions == 0 ]];then
-      t1=$(date +%s)
       listversions=$($a s3api list-object-versions --bucket $b)
       [[ $elapsedtime == 1 ]] && etime $t1 $(date +%s)
       versions=$(jq -r '.Versions[]?'<<<$listversions)
@@ -435,10 +485,10 @@ if [[ ! -z $bucket ]];then
         [[ $showcounters == 1 ]] && dcnt="Version $((cnt++))/$tot"
         printlog "$($a s3api delete-object --bucket $b $i|jq -r --arg dcnt "$dcnt" '.|"\(.VersionId) \($dcnt)"')" &
         throttle
-      done< <($a s3api list-object-versions --bucket $b|jq -r '.Versions[]?|"--key \(.Key) --version-id \(.VersionId)"')
+      done< <(jq -r '.Versions[]?|"--key \(.Key) --version-id \(.VersionId)"'<<<$listversions)
       wait
-      [[ $elapsedtime == 1 ]] && etime $t1 $(date +%s)
     fi
+    [[ $elapsedtime == 1 ]] && etime $t1 $(date +%s)
   fi
 
   if [[ $postlistversions == 1 ]];then
@@ -452,8 +502,11 @@ if [[ ! -z $bucket ]];then
   if [[ $prelistdeletemarkers == 1 ]];then
     title PRE "List of delete markers"
     t1=$(date +%s)
-    listdmarkers=$($a s3api list-object-versions --bucket $b)
-    printlog "$(jq -r '.Versions'<<< $versions)"
+    if [[ $postlistversions == 0 ]];then
+      listdmarkers=$($a s3api list-object-versions --bucket $b)
+    else
+      listdmarkers=$versions
+    fi
     dmarkers=$(jq -r '.DeleteMarkers[]?'<<<$listdmarkers)
     tot=$(jq -r '.DeleteMarkers|length'<<<$listdmarkers)
     printlog "$(jq -r '.|"\(.Key) version-id \(.VersionId)"'<<< $dmarkers)"
@@ -462,25 +515,23 @@ if [[ ! -z $bucket ]];then
 
   # Delete all DeleteMarkers
   if [[ $deletedeletemarkers == 1 ]];then
+    title "Deleting all $tot delete markers in bucket \"$b\""
+    t1=$(date +%s)
     if [[ $prelistdeletemarkers == 0 ]];then
-      t1=$(date +%s)
       listdmarkers=$($a s3api list-object-versions --bucket $b)
-      [[ $elapsedtime == 1 ]] && etime $t1 $(date +%s)
       dmarkers=$(jq -r '.DeleteMarkers[]?'<<<$listdmarkers)
       tot=$(jq -r '.DeleteMarkers|length'<<<$listdmarkers)
     fi
     if [[ $dmarkers ]];then
-      title "Deleting all $tot delete markers in bucket \"$b\""
       cnt=1
-      t1=$(date +%s)
       while read i;do
         [[ $showcounters == 1 ]] && dcnt="Delete Marker $((cnt++))/$tot"
         printlog "$($a s3api delete-object --bucket $b $i|jq -r --arg dcnt "$dcnt" '.|"\(.VersionId) \($dcnt)"')" &
         throttle
-      done< <($a s3api list-object-versions --bucket $b|jq -r '.DeleteMarkers[]?|"--key \(.Key) --version-id \(.VersionId)"')
+      done< <(jq -r '.DeleteMarkers[]?|"--key \(.Key) --version-id \(.VersionId)"'<<<$listdmarkers)
       wait
-      [[ $elapsedtime == 1 ]] && etime $t1 $(date +%s)
     fi
+    [[ $elapsedtime == 1 ]] && etime $t1 $(date +%s)
   fi
 
   if [[ $postlistdeletemarkers == 1 ]];then

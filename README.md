@@ -3,7 +3,9 @@ Custom workflows for S3 bucket with versioning
 
 ![](https://raw.githubusercontent.com/adlytaibi/ss/master/removeversiondbucket/removeversiondbucket.gif)
 
-This tool helps whether you want to understand how to build and destroy a bucket with versioning or simply testing a few scenarios and workflows. A default number parallel operations is set by a `governor` variable.
+This tool helps whether you want to understand how to build and destroy a bucket with versioning or simply testing a few scenarios and workflows. A
+default number parallel operations is set by a `governor` variable.
+
 This is a highly customizable bash script that will go through any or all of the following workflows:
 - Create a bucket if it doesn't exist
 - Check and enable or suspend versioning on the newly created or existing bucket
@@ -68,6 +70,7 @@ Safe Example
 ------------
 
 In this example, `10 files` are uploaded with `2 versions`, all files in the bucket are deleted, only `delete markers` are deleted and the bucket is kept. Which means restoring the deleted files or an undelete.
+
 * **_Note:_** For an existing bucket with files, `all` files are deleted and restored, the `10 files` with their `2 versions` and any file that existed in the bucket prior to enabling versioning.
 
 ```bash
@@ -86,15 +89,15 @@ Show elapsed time (-et): Disabled
 Execute after show (-sr): Enabled
 Log output (-l): Disabled
 Switchboard setting (-sb): 202
-====================== Object phase ======================
+================================  Object phase  ===============================
 Pre-Delete object list, objects: Disabled
    DELETE all objects: Enabled
 Post Delete object, list objects: Disabled
-================== File versions phase ==================
+============================  File versions phase  ============================
 Pre-Delete file versions, list versions: Disabled
    DELETE all files' versions: Disabled
 Post Delete file versions, list versions:: Disabled
-================== Delete markers phase ==================
+============================  Delete markers phase  ===========================
 Pre-Delete delete markers, list delete markers: Disabled
    DELETE all delete markers: Enabled
 Post Delete delete markers, list delete markers: Disabled
@@ -167,15 +170,15 @@ Show elapsed time (-et): Disabled
 Execute after show (-sr): Enabled
 Log output (-l): Disabled
 Switchboard setting (-sb): 400
-====================== Object phase ======================
+================================  Object phase  ===============================
 Pre-Delete object list, objects: Enabled
    DELETE all objects: Disabled
 Post Delete object, list objects: Disabled
-================== File versions phase ==================
+============================  File versions phase  ============================
 Pre-Delete file versions, list versions: Disabled
    DELETE all files' versions: Disabled
 Post Delete file versions, list versions:: Disabled
-================== Delete markers phase ==================
+============================  Delete markers phase  ===========================
 Pre-Delete delete markers, list delete markers: Disabled
    DELETE all delete markers: Disabled
 Post Delete delete markers, list delete markers: Disabled
@@ -295,9 +298,11 @@ Usage
    EXAMPLES
      The following command will show the parameters then executes:
    
-     $ removeversiondbucket -sr -a="--endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem" -b=mybucket -c=5000 -d=5 -kb -g=30 -sb=222 -rb
+     $ removeversiondbucket -sr -a="--endpoint-url https://s3.demo.netapp.com:8082 \
+     --ca chain.pem" -b=mybucket -c=5000 -d=5 -kb -g=30 -sb=222 -rb
    
-     aws cli extra options (-a): aws --endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem
+     aws cli extra options (-a): aws --endpoint-url \
+     https://s3.demo.netapp.com:8082 --ca chain.pem
      Bucket name (-b): mybucket
      Number of files to create (-c): 5000
      Number of versions per file to create (-d): 5
@@ -310,15 +315,15 @@ Usage
      Execute after show (-sr): Enabled
      Log output (-l): Disabled
      Switchboard setting (-sb): 222
-     ====================== Object phase ======================
+     ================================  Object phase  ===============================
      Pre-Delete object list, objects: Disabled
         DELETE all objects: Enabled
      Post Delete object, list objects: Disabled
-     ================== File versions phase ==================
+     ============================  File versions phase  ============================
      Pre-Delete file versions, list versions: Disabled
         DELETE all files' versions: Enabled
      Post Delete file versions, list versions:: Disabled
-     ================== Delete markers phase ==================
+     ============================  Delete markers phase  ===========================
      Pre-Delete delete markers, list delete markers: Disabled
         DELETE all delete markers: Enabled
      Post Delete delete markers, list delete markers: Disabled

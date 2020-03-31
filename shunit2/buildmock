@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+. placebo
+pill_attach command=aws data_path=mock
+pill_record
+. ../removeversiondbucket -a='--endpoint-url https://webscaledemo.netapp.com' -b=bversion -c=6 -d=2 -g=1
+pill_log
+pill_detach

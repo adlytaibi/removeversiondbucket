@@ -1,0 +1,186 @@
+#!/usr/bin/env bash
+
+mktemp() { echo $tmpdir; }
+
+setUp() {
+  . placebo
+  pill_attach command=aws data_path=mock
+  pill_playback
+  tmpdir=$(/usr/bin/env mktemp -d)
+  ov=1
+}
+
+tearDown() {
+  [[ $(type -t pill_detach) == 'function' ]] &&pill_detach
+  [[ -f /tmp/.list-objects ]] && rm /tmp/.list-objects
+  [[ -f /tmp/.list-object-versions ]] && rm /tmp/.list-object-versions
+  [[ -f /tmp/.list-object-versions-dmarkers ]] && rm /tmp/.list-object-versions-dmarkers
+  rm -f actual_log
+  rm -f expected_log
+}
+
+testSB777() {
+  . ../removeversiondbucket -a='--endpoint-url https://webscaledemo.netapp.com' -b=bversion -c=6 -g=3 -sb=777
+
+  cat > expected_log <<EOF
+aws --endpoint-url https://webscaledemo.netapp.com s3api head-bucket --bucket bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3 mb s3://bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3api get-bucket-versioning --bucket bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-bucket-versioning --bucket bversion --versioning-configuration Status=Enabled
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test1 --body $tmpdir/test1
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test1 --body $tmpdir/test1
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test2 --body $tmpdir/test2
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test2 --body $tmpdir/test2
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test3 --body $tmpdir/test3
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test3 --body $tmpdir/test3
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test4 --body $tmpdir/test4
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test4 --body $tmpdir/test4
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test5 --body $tmpdir/test5
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test5 --body $tmpdir/test5
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test6 --body $tmpdir/test6
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test6 --body $tmpdir/test6
+aws --endpoint-url https://webscaledemo.netapp.com s3api list-objects --bucket bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test1
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test2
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test3
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test4
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test5
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test6
+aws --endpoint-url https://webscaledemo.netapp.com s3api list-objects --bucket bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3api list-object-versions --bucket bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test1 --version-id RjIzNEU3M0MtNzM1OS0xMUVBLTlGNDEtMDk2ODAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test1 --version-id RjFDNTgzOTktNzM1OS0xMUVBLThCQzEtMjJERjAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test2 --version-id RjM0NzFBOTItNzM1OS0xMUVBLTk5RTQtMEYyMTAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test2 --version-id RjJBRTBFREYtNzM1OS0xMUVBLTlGRjgtRTk0RDAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test3 --version-id RjQzMjNERTgtNzM1OS0xMUVBLTkyMzMtN0Y1QzAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test3 --version-id RjNCNzhGQTUtNzM1OS0xMUVBLThGMzYtMzBFMjAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test4 --version-id RjUxQzI4QkUtNzM1OS0xMUVBLTlCOTYtRTZCQzAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test4 --version-id RjRBNjM1NkItNzM1OS0xMUVBLThEM0MtN0VDRjAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test5 --version-id RjYxREUxNTQtNzM1OS0xMUVBLTlDQTUtMzkyNDAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test5 --version-id RjVBQzgxRTEtNzM1OS0xMUVBLTkwNUUtNzYwRDAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test6 --version-id RjczM0U1M0EtNzM1OS0xMUVBLTlEOEEtRUUyODAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test6 --version-id RjZBNjI0MjctNzM1OS0xMUVBLTgzRjktNzM2MTAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api list-object-versions --bucket bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test1 --version-id RjgxMEQ3QkQtNzM1OS0xMUVBLTlCRjQtRkJDQjAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test2 --version-id Rjg3RDJFMUUtNzM1OS0xMUVBLTk4MEQtQUZERjAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test3 --version-id RjhGNkYxRkYtNzM1OS0xMUVBLTg4NzgtQ0FDNzAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test4 --version-id Rjk1Rjc3RDAtNzM1OS0xMUVBLThFRkEtQzdEMDAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test5 --version-id RjlEODJBNDEtNzM1OS0xMUVBLTkzMTUtNUJBNTAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test6 --version-id RkE1QkIyMjItNzM1OS0xMUVBLTlERjItNzU4NjAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api list-object-versions --bucket bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3 rb s3://bversion
+EOF
+  pill_log > actual_log
+  assertEquals "unexpected sequence of commands issued" \
+    "" "$(diff -wu expected_log actual_log)"
+}
+
+testSB666() {
+  . ../removeversiondbucket -a='--endpoint-url https://webscaledemo.netapp.com' -b=bversion -c=6 -g=3 -sb=666
+
+  cat > expected_log <<EOF
+aws --endpoint-url https://webscaledemo.netapp.com s3api head-bucket --bucket bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3 mb s3://bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3api get-bucket-versioning --bucket bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-bucket-versioning --bucket bversion --versioning-configuration Status=Enabled
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test1 --body $tmpdir/test1
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test1 --body $tmpdir/test1
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test2 --body $tmpdir/test2
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test2 --body $tmpdir/test2
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test3 --body $tmpdir/test3
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test3 --body $tmpdir/test3
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test4 --body $tmpdir/test4
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test4 --body $tmpdir/test4
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test5 --body $tmpdir/test5
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test5 --body $tmpdir/test5
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test6 --body $tmpdir/test6
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test6 --body $tmpdir/test6
+aws --endpoint-url https://webscaledemo.netapp.com s3api list-objects --bucket bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test1
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test2
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test3
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test4
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test5
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test6
+aws --endpoint-url https://webscaledemo.netapp.com s3api list-object-versions --bucket bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test1 --version-id RjIzNEU3M0MtNzM1OS0xMUVBLTlGNDEtMDk2ODAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test1 --version-id RjFDNTgzOTktNzM1OS0xMUVBLThCQzEtMjJERjAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test2 --version-id RjM0NzFBOTItNzM1OS0xMUVBLTk5RTQtMEYyMTAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test2 --version-id RjJBRTBFREYtNzM1OS0xMUVBLTlGRjgtRTk0RDAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test3 --version-id RjQzMjNERTgtNzM1OS0xMUVBLTkyMzMtN0Y1QzAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test3 --version-id RjNCNzhGQTUtNzM1OS0xMUVBLThGMzYtMzBFMjAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test4 --version-id RjUxQzI4QkUtNzM1OS0xMUVBLTlCOTYtRTZCQzAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test4 --version-id RjRBNjM1NkItNzM1OS0xMUVBLThEM0MtN0VDRjAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test5 --version-id RjYxREUxNTQtNzM1OS0xMUVBLTlDQTUtMzkyNDAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test5 --version-id RjVBQzgxRTEtNzM1OS0xMUVBLTkwNUUtNzYwRDAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test6 --version-id RjczM0U1M0EtNzM1OS0xMUVBLTlEOEEtRUUyODAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test6 --version-id RjZBNjI0MjctNzM1OS0xMUVBLTgzRjktNzM2MTAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api list-object-versions --bucket bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test1 --version-id RjgxMEQ3QkQtNzM1OS0xMUVBLTlCRjQtRkJDQjAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test2 --version-id Rjg3RDJFMUUtNzM1OS0xMUVBLTk4MEQtQUZERjAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test3 --version-id RjhGNkYxRkYtNzM1OS0xMUVBLTg4NzgtQ0FDNzAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test4 --version-id Rjk1Rjc3RDAtNzM1OS0xMUVBLThFRkEtQzdEMDAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test5 --version-id RjlEODJBNDEtNzM1OS0xMUVBLTkzMTUtNUJBNTAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test6 --version-id RkE1QkIyMjItNzM1OS0xMUVBLTlERjItNzU4NjAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3 rb s3://bversion
+EOF
+  pill_log > actual_log
+  assertEquals "unexpected sequence of commands issued" \
+    "" "$(diff -wu expected_log actual_log)"
+}
+
+testSB222() {
+  . ../removeversiondbucket -a='--endpoint-url https://webscaledemo.netapp.com' -b=bversion -c=6 -g=3 -sb=222
+
+  cat > expected_log <<EOF
+aws --endpoint-url https://webscaledemo.netapp.com s3api head-bucket --bucket bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3 mb s3://bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3api get-bucket-versioning --bucket bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-bucket-versioning --bucket bversion --versioning-configuration Status=Enabled
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test1 --body $tmpdir/test1
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test1 --body $tmpdir/test1
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test2 --body $tmpdir/test2
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test2 --body $tmpdir/test2
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test3 --body $tmpdir/test3
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test3 --body $tmpdir/test3
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test4 --body $tmpdir/test4
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test4 --body $tmpdir/test4
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test5 --body $tmpdir/test5
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test5 --body $tmpdir/test5
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test6 --body $tmpdir/test6
+aws --endpoint-url https://webscaledemo.netapp.com s3api put-object --bucket bversion --key vers/test6 --body $tmpdir/test6
+aws --endpoint-url https://webscaledemo.netapp.com s3api list-objects --bucket bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test1
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test2
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test3
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test4
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test5
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test6
+aws --endpoint-url https://webscaledemo.netapp.com s3api list-object-versions --bucket bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test1 --version-id RjIzNEU3M0MtNzM1OS0xMUVBLTlGNDEtMDk2ODAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test1 --version-id RjFDNTgzOTktNzM1OS0xMUVBLThCQzEtMjJERjAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test2 --version-id RjM0NzFBOTItNzM1OS0xMUVBLTk5RTQtMEYyMTAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test2 --version-id RjJBRTBFREYtNzM1OS0xMUVBLTlGRjgtRTk0RDAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test3 --version-id RjQzMjNERTgtNzM1OS0xMUVBLTkyMzMtN0Y1QzAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test3 --version-id RjNCNzhGQTUtNzM1OS0xMUVBLThGMzYtMzBFMjAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test4 --version-id RjUxQzI4QkUtNzM1OS0xMUVBLTlCOTYtRTZCQzAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test4 --version-id RjRBNjM1NkItNzM1OS0xMUVBLThEM0MtN0VDRjAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test5 --version-id RjYxREUxNTQtNzM1OS0xMUVBLTlDQTUtMzkyNDAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test5 --version-id RjVBQzgxRTEtNzM1OS0xMUVBLTkwNUUtNzYwRDAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test6 --version-id RjczM0U1M0EtNzM1OS0xMUVBLTlEOEEtRUUyODAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test6 --version-id RjZBNjI0MjctNzM1OS0xMUVBLTgzRjktNzM2MTAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api list-object-versions --bucket bversion
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test1 --version-id RjgxMEQ3QkQtNzM1OS0xMUVBLTlCRjQtRkJDQjAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test2 --version-id Rjg3RDJFMUUtNzM1OS0xMUVBLTk4MEQtQUZERjAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test3 --version-id RjhGNkYxRkYtNzM1OS0xMUVBLTg4NzgtQ0FDNzAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test4 --version-id Rjk1Rjc3RDAtNzM1OS0xMUVBLThFRkEtQzdEMDAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test5 --version-id RjlEODJBNDEtNzM1OS0xMUVBLTkzMTUtNUJBNTAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3api delete-object --bucket bversion --key vers/test6 --version-id RkE1QkIyMjItNzM1OS0xMUVBLTlERjItNzU4NjAwQzMyQkUx
+aws --endpoint-url https://webscaledemo.netapp.com s3 rb s3://bversion
+EOF
+  pill_log > actual_log
+  assertEquals "unexpected sequence of commands issued" \
+    "" "$(diff -wu expected_log actual_log)"
+}
+
+. ./shunit2
