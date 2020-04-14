@@ -298,7 +298,7 @@ Usage
      The following command will show the parameters then executes:
    
      $ removeversiondbucket -sr -a="--endpoint-url https://s3.demo.netapp.com:8082 \
-     --ca chain.pem" -b=mybucket -c=5000 -d=5 -kb -g=30 -sb=222 -rb
+     --ca chain.pem" -b=mybucket -c=5000 -d=5 -g=30 -sb=222 -rb
    
      aws cli extra options (-a): aws --endpoint-url \
      https://s3.demo.netapp.com:8082 --ca chain.pem

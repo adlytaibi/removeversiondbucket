@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Pre-requisites checks
-for c in jq aws awk sed ps bc; do
-  command -v $c >/dev/null || { echo "$c is required."; exit 1; }
+for prog in jq aws awk sed ps bc; do
+  command -v $prog >/dev/null || { echo "$prog is required."; exit 1; }
 done
 [[ $BASH_VERSINFO > 2 ]] || { echo "need bash>3."; exit 1; }
 
@@ -62,7 +62,7 @@ function usage() {
   echo -e "\t\tA path can be relative to your location or full path."
   echo -e "\n\033[1mEXAMPLES\033[0m"
   echo -e "\tThe following command will show the parameters then executes:"
-  echo -e "\n\t\$ $(basename $0) \033[1m-sr\033[0m \033[1m-a=\033[0m\"--endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem\" \033[1m-b=\033[0mmybucket \033[1m-c=\033[0m5000 \033[1m-d=\033[0m5 \033[1m-kb \033[1m-g=\033[0m30 \033[1m-sb=\033[0m222 \033[1m-rb\033[0m"
+  echo -e "\n\t\$ $(basename $0) \033[1m-sr\033[0m \033[1m-a=\033[0m\"--endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem\" \033[1m-b=\033[0mmybucket \033[1m-c=\033[0m5000 \033[1m-d=\033[0m5 \033[1m-g=\033[0m30 \033[1m-sb=\033[0m222 \033[1m-rb\033[0m"
   echo -e "\n\taws cli extra options (-a): \033[1maws --endpoint-url \\\\\n\thttps://s3.demo.netapp.com:8082 --ca chain.pem\033[0m"
   echo -e "\tBucket name (-b): \033[1mmybucket\033[0m"
   echo -e "\tNumber of files to create (-c): \033[1m5000\033[0m"
