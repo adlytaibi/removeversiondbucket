@@ -218,7 +218,6 @@ Usage
      [[-sb|--switchboard]=VALUE]
      [-l|--log] [[-ld|--logdir]=VALUE]
    
-   
    DESCRIPTION
      -a=OPTIONS, --awscliopts="OPTIONS"  (default: "--endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem")
        Refer to aws help pages. Do not add aws at the beginning of the options, it's already taken care of.

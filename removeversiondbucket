@@ -1,18 +1,15 @@
 #!/usr/bin/env bash
 # Pre-requisites checks
-command -v jq >/dev/null || { echo "jq is required."; exit 1; }
-command -v aws >/dev/null || { echo "awscli is required."; exit 1; }
-command -v awk >/dev/null || { echo "awk is required."; exit 1; }
-command -v sed >/dev/null || { echo "sed is required."; exit 1; }
-command -v ps >/dev/null || { echo "ps is required."; exit 1; }
-command -v bc >/dev/null || { echo "bc is required."; exit 1; }
+for c in jq aws awk sed ps bc; do
+  command -v $c >/dev/null || { echo "$c is required."; exit 1; }
+done
 [[ $BASH_VERSINFO > 2 ]] || { echo "need bash>3."; exit 1; }
 
 # Full help page
 function usage() {
   echo -e "\033[1mUSAGE\033[0m\n\tCustom workflows for S3 bucket with versioning\n\n\033[1mSYNOPSIS\033[0m"
   shortusage
-  echo -e "\n\033[1mDESCRIPTION\033[0m"
+  echo -e "\033[1mDESCRIPTION\033[0m"
   echo -e "\t\033[1m-a=\033[0m"OPTIONS", \033[1m--awscliopts=\033[0m\"OPTIONS\"\t(\033[1mdefault:\033[0m \"--endpoint-url https://s3.demo.netapp.com:8082 --ca chain.pem\")"
   echo -e "\t\tRefer to aws help pages. Do not add aws at the beginning of the options, it's already taken care of."
   echo -e "\n\t\033[1m-b=\033[0mNAME, \033[1m--bucket=\033[0mNAME\t(\033[1mdefault:\033[0m Randomly Generated with \033[1mrbv\033[0m prefix)"
